@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel Analítico Completo — Refuturiza × CDT</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --navy:#0D3B5E;--navy2:#1a5285;--orange:#F47A20;--teal:#2EC4B6;
+  --red:#E53E3E;--yellow:#D97706;--green:#38A169;--purple:#805AD5;
+  --bg:#F0F4F8;--card:#fff;--border:#E2E8F0;--text:#1A202C;--muted:#718096;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text)}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,var(--navy),var(--navy2));border-bottom:3px solid var(--orange);padding:20px 30px 14px;display:flex;justify-content:space-between;align-items:flex-end}
+.hdr h1{color:#fff;font-size:1.35rem;font-weight:700}
+.hdr p{color:rgba(255,255,255,.6);font-size:.8rem;margin-top:3px}
+.hdr-right{text-align:right}
+.hdr-badge{background:var(--orange);color:#fff;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700;display:inline-block;margin-bottom:6px}
+.hdr-stats{display:flex;gap:18px;justify-content:flex-end}
+.hdr-stat .n{color:#fff;font-size:1.3rem;font-weight:800;line-height:1}
+.hdr-stat .l{color:rgba(255,255,255,.55);font-size:.7rem;margin-top:2px}
+.hdr-stat .n.red{color:#fc8181}
+.hdr-stat .n.orange{color:#fbd38d}
+.hdr-stat .n.teal{color:#81e6d9}
+
+/* TABS */
+.tabs{background:var(--navy);display:flex;padding:0 30px;overflow-x:auto}
+.tab{color:rgba(255,255,255,.5);padding:12px 16px;font-size:.8rem;font-weight:500;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+.tab:hover{color:rgba(255,255,255,.85)}
+.tab.active{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* PANELS */
+.panel{display:none;padding:22px 30px}
+.panel.active{display:block}
+
+/* KPI GRID */
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--card);border-radius:10px;padding:16px 14px;border-left:4px solid;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.kpi.green{border-color:var(--green)}.kpi.red{border-color:var(--red)}.kpi.orange{border-color:var(--orange)}
+.kpi.navy{border-color:var(--navy)}.kpi.teal{border-color:var(--teal)}.kpi.yellow{border-color:var(--yellow)}.kpi.purple{border-color:var(--purple)}
+.kpi label{font-size:.66rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600}
+.kpi .v{font-size:1.55rem;font-weight:800;color:var(--navy);margin:4px 0 2px;line-height:1}
+.kpi .s{font-size:.72rem;color:var(--muted)}
+.kpi .bdg{display:inline-block;padding:2px 7px;border-radius:10px;font-size:.66rem;font-weight:700;margin-top:4px}
+.bdg.d{background:#fff5f5;color:var(--red)}.bdg.w{background:#fffbea;color:var(--yellow)}.bdg.g{background:#f0fff4;color:var(--green)}.bdg.b{background:#ebf8ff;color:#2b6cb0}
+
+/* CARD */
+.card{background:var(--card);border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:16px}
+.card h3{font-size:.86rem;font-weight:700;color:var(--navy);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.g13{display:grid;grid-template-columns:1fr 2fr;gap:16px}
+@media(max-width:900px){.g2,.g3,.g13{grid-template-columns:1fr}}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:.78rem}
+th{background:var(--navy);color:#fff;padding:8px 10px;text-align:left;font-size:.72rem;font-weight:600}
+td{padding:8px 10px;border-bottom:1px solid var(--border)}
+tr:hover td{background:#f7fafc}
+.total-row td{font-weight:700;background:#edf2f7}
+th.c,td.c{text-align:center}
+th.r,td.r{text-align:right}
+
+/* TAGS */
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.67rem;font-weight:700}
+.tag.r{background:#fff5f5;color:var(--red)}.tag.o{background:#fff3e0;color:#c05a05}
+.tag.g{background:#f0fff4;color:var(--green)}.tag.b{background:#ebf8ff;color:#2b6cb0}.tag.p{background:#faf5ff;color:var(--purple)}
+
+/* PROGRESS */
+.pr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.pr-lbl{font-size:.74rem;font-weight:600;width:165px;flex-shrink:0;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr-wrap{flex:1;background:#edf2f7;border-radius:4px;height:12px;overflow:hidden}
+.pr-bar{height:100%;border-radius:4px;transition:width .5s}
+.pr-pct{font-size:.72rem;font-weight:700;width:40px;text-align:right;color:var(--navy)}
+.pr-n{font-size:.7rem;color:var(--muted);width:48px;text-align:right}
+
+/* ALERTS */
+.alert{border-radius:8px;padding:12px 14px;margin-bottom:9px;display:flex;gap:10px;border-left:4px solid}
+.alert.d{background:#fff5f5;border-color:var(--red)}.alert.w{background:#fffbea;border-color:var(--yellow)}.alert.i{background:#ebf8ff;border-color:var(--teal)}.alert.g{background:#f0fff4;border-color:var(--green)}
+.al-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.al-t{font-weight:700;font-size:.81rem;margin-bottom:2px}
+.al-b{font-size:.78rem;color:var(--muted);line-height:1.45}
+
+/* INSIGHT */
+.insight{background:linear-gradient(135deg,#ebf8ff,#e6fffa);border-radius:8px;padding:12px 14px;margin-bottom:14px;border:1px solid #bee3f8}
+.insight h4{font-size:.76rem;font-weight:700;color:var(--navy);margin-bottom:4px}
+.insight p{font-size:.77rem;color:var(--muted);line-height:1.5}
+
+/* SECTION */
+.sec{background:var(--navy);color:#fff;padding:7px 12px;border-radius:6px;font-size:.76rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+
+/* FUNIL */
+.funil{display:flex;flex-direction:column;gap:6px;padding:10px 0}
+.funil-row{display:flex;align-items:center;gap:10px}
+.funil-lbl{font-size:.75rem;font-weight:600;width:110px;color:var(--navy)}
+.funil-bar-wrap{flex:1;background:#edf2f7;border-radius:4px;height:26px;overflow:hidden;position:relative}
+.funil-bar{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:10px;font-size:.73rem;font-weight:700;color:#fff;transition:width .6s}
+.funil-val{font-size:.75rem;font-weight:700;width:80px;text-align:right;color:var(--navy)}
+.funil-pct{font-size:.72rem;color:var(--muted);width:42px;text-align:right}
+
+canvas{max-height:260px!important}
+
+.hk .n{color:#fff;font-size:1.25rem;font-weight:800;line-height:1}
+.hk .l{color:rgba(255,255,255,.55);font-size:.7rem;margin-top:2px}
+.hdr-kpis{display:flex;gap:18px;justify-content:flex-end;margin-top:4px}
+.note-box{background:#fffbea;border:1px solid #f6c90e;border-radius:7px;padding:9px 12px;font-size:.74rem;color:#92400e;margin-bottom:14px}
+.legend-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--text)}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cohort-wrap{overflow-x:auto;margin-top:8px}
+.cohort-table{border-collapse:collapse;font-size:.72rem;min-width:900px}
+.cohort-table th{background:var(--navy);color:#fff;padding:7px 9px;text-align:center;white-space:nowrap;font-size:.7rem}
+.cohort-table td{padding:6px 8px;text-align:center;border:1px solid #e2e8f0;font-weight:600;font-size:.71rem}
+.cohort-table .lbl{text-align:left;font-weight:700;background:#f7fafc;white-space:nowrap;padding-left:10px}
+.cohort-table .vol{text-align:right;color:var(--muted);font-weight:400}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>Painel Analítico Completo — Refuturiza × CDT</h1>
+    <p>Período: Jan/2025 a Jun/2026 &nbsp;·&nbsp; Base: 11/06/2026 &nbsp;·&nbsp; 192.961 vendas · 45.951 cancelados · 92.091 inadimplentes</p>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-badge">Refuturiza × CDT</div>
+    <div class="hdr-stats">
+      <div class="hdr-stat"><div class="n teal">192.961</div><div class="l">Vendas</div></div>
+      <div class="hdr-stat"><div class="n orange">45.951</div><div class="l">Cancelados</div></div>
+      <div class="hdr-stat"><div class="n red">92.091</div><div class="l">Inadimplentes</div></div>
+      <div class="hdr-stat"><div class="n" style="color:#81e6d9">147.010</div><div class="l">Ativos</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="tab('geral',this)">📊 Visão Geral</div>
+  <div class="tab" onclick="tab('evolucao',this)">📈 Evolução Mensal</div>
+  <div class="tab" onclick="tab('regional',this)">🗺️ Regional & Franquias</div>
+  <div class="tab" onclick="tab('cancelados',this)">❌ Cancelamentos</div>
+  <div class="tab" onclick="tab('perfil',this)">👤 Perfil</div>
+  <div class="tab" onclick="tab('cohort_visao',this)">🔬 Cohort & Ciclo de Vida</div>
+  <div class="tab" onclick="tab('survival',this)">📉 Sobrevivência</div>
+  <div class="tab" onclick="tab('cohort',this)">🔢 Heatmap Cohort</div>
+  <div class="tab" onclick="tab('safra',this)">📅 Safras</div>
+  <div class="tab" onclick="tab('duracao',this)">⏱️ Duração & LTV</div>
+  <div class="tab" onclick="tab('vendas_inad',this)">💹 Vendas & Inadimplência</div>
+  <div class="tab" onclick="tab('aging',this)">📆 Aging de Inadimplência</div>
+  <div class="tab" onclick="tab('alertas_pc',this)">⚠️ Alertas & Ações</div>
+</div>
+
+
+
+<div class="panel active" id="tab-geral">
+
+  <div class="kg">
+    <div class="kpi green"><label>Total Vendas</label><div class="v">192.961</div><div class="s">Jan/25 – Jun/26</div></div>
+    <div class="kpi orange"><label>Total Cancelados</label><div class="v">45.951</div><div class="s">23,8% das vendas</div><div class="bdg w">Taxa elevada</div></div>
+    <div class="kpi red"><label>Inadimplentes (únicos)</label><div class="v">92.091</div><div class="s">62,6% dos ativos</div><div class="bdg d">Crítico</div></div>
+    <div class="kpi navy"><label>Ativos Totais</label><div class="v">147.010</div><div class="s">76,2% das vendas</div><div class="bdg b">Vendas − Cancelados</div></div>
+    <div class="kpi red"><label>Adimplentes Ativos</label><div class="v">54.923</div><div class="s">37,4% dos ativos</div><div class="bdg d">Apenas 19,8% das vendas</div></div>
+    <div class="kpi teal"><label>LTV Médio Cancelados</label><div class="v">R$ 128,80</div><div class="s">Mediana: R$ 92,00</div></div>
+    <div class="kpi yellow"><label>Cancel. Automático</label><div class="v">29,2%</div><div class="s">13.415 do total cancel.</div></div>
+    <div class="kpi purple"><label>Chargeback</label><div class="v">5,4%</div><div class="s">2.492 cancelamentos</div><div class="bdg d">Acima limite</div></div>
+  </div>
+
+  <!-- FUNIL -->
+  <div class="card">
+    <h3>🔻 Composição Real da Carteira (por CPF único)</h3>
+    <div style="font-size:.75rem;color:var(--muted);margin-bottom:12px;background:#fffbea;padding:8px 12px;border-radius:6px;border-left:3px solid var(--yellow)">
+      ⚠️ <b>Metodologia corrigida:</b> Os 92.091 inadimplentes e 45.951 cancelados são populações sem sobreposição de CPF. Os inadimplentes estão <b>dentro</b> dos 147.014 ativos — não são grandezas independentes. A visão correta é a decomposição dos ativos abaixo.
+    </div>
+    <div class="funil">
+      <div class="funil-row">
+        <div class="funil-lbl">Vendas (base)</div>
+        <div class="funil-bar-wrap"><div class="funil-bar" style="width:100%;background:var(--navy)">192.961</div></div>
+        <div class="funil-val">192.961</div><div class="funil-pct">100%</div>
+      </div>
+      <div class="funil-row">
+        <div class="funil-lbl">Cancelados</div>
+        <div class="funil-bar-wrap"><div class="funil-bar" style="width:23.8%;background:var(--red)">45.951</div></div>
+        <div class="funil-val">45.951</div><div class="funil-pct">23,8%</div>
+      </div>
+      <div class="funil-row">
+        <div class="funil-lbl">Ativos (V − C)</div>
+        <div class="funil-bar-wrap"><div class="funil-bar" style="width:76.2%;background:var(--teal)">147.010</div></div>
+        <div class="funil-val">147.010</div><div class="funil-pct">76,2%</div>
+      </div>
+      <div class="funil-row">
+        <div class="funil-lbl" style="padding-left:14px">↳ Inadimplentes ativos</div>
+        <div class="funil-bar-wrap"><div class="funil-bar" style="width:62.6%;background:var(--orange)">92.091</div></div>
+        <div class="funil-val">92.091</div><div class="funil-pct">62,6%</div>
+      </div>
+      <div class="funil-row">
+        <div class="funil-lbl" style="padding-left:14px">↳ Adimplentes</div>
+        <div class="funil-bar-wrap"><div class="funil-bar" style="width:37.4%;background:var(--green)">54.923</div></div>
+        <div class="funil-val">54.923</div><div class="funil-pct">37,4%</div>
+      </div>
+      <div class="funil-row">
+        <div class="funil-lbl">Chargeback</div>
+        <div class="funil-bar-wrap"><div class="funil-bar" style="width:1.7%;background:var(--purple)"></div></div>
+        <div class="funil-val">2.492</div><div class="funil-pct">1,7%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📊 Vendas × Cancelados × Inadimplentes (mensal)</h3>
+      <canvas id="c-overview"></canvas>
+    </div>
+    <div class="card">
+      <h3>🎯 Taxa de Cancelamento e Inadimplência (%)</h3>
+      <canvas id="c-taxas"></canvas>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <h3>🗺️ Cancelados por Regional (%)</h3>
+      <canvas id="c-reg-cancel-pie"></canvas>
+    </div>
+    <div class="card">
+      <h3>📦 Composição por Plano</h3>
+      <canvas id="c-plano-compare"></canvas>
+    </div>
+    <div class="card">
+      <h3>🔗 Canal de Origem</h3>
+      <canvas id="c-origem-compare"></canvas>
+    </div>
+  </div>
+
+  <div class="insight">
+    <h4>💡 Diagnóstico Geral</h4>
+    <p>Cruzando os três arquivos por CPF único, a carteira tem <b>147.010 assinantes ativos</b> (vendas − cancelados). Desses ativos, <b>92.091 (62,6%) estão inadimplentes</b> e apenas <b>54.923 (37,4%) estão adimplentes</b>. O padrão de <b>cancelamento acelerado a partir de Nov/2025</b> (taxa de 69,8%) combinado com inadimplência estrutural em 72,9% dos ativos indica um modelo com qualidade de carteira muito deteriorada. A principal alavanca de reversão está na <b>qualificação da venda</b>, uma vez que 97%+ das vendas vieram de Link do Vendedor sem filtro adequado de assinante.</p>
+  </div>
+</div>
+
+<div class="panel" id="tab-evolucao">
+
+  <div class="kg">
+    <div class="kpi red"><label>Pior Mês (Cancel %)</label><div class="v">69,8%</div><div class="s">Nov/2025 — 6.566 cancel.</div><div class="bdg d">Pico de churn</div></div>
+    <div class="kpi orange"><label>Pior Mês (Inadimp %)</label><div class="v">76,7%</div><div class="s">Jan/2026 — 6.844 inadimp.</div></div>
+    <div class="kpi navy"><label>Pico de Vendas</label><div class="v">15.493</div><div class="s">Set/2025 (+7% vs mês ant.)</div></div>
+    <div class="kpi green"><label>Melhor relação C/V</label><div class="v">1,8%</div><div class="s">Jan/2025 — menor churn</div><div class="bdg g">Mínimo histórico</div></div>
+    <div class="kpi red"><label>Cancel > Vendas (meses)</label><div class="v">4 meses</div><div class="s">Fev, Mar, Abr, Mai e Jun/26</div><div class="bdg d">Carteira encolhendo</div></div>
+  </div>
+
+  <div class="card">
+    <h3>📈 Vendas × Cancelados × Inadimplentes — Volume Mensal</h3>
+    <canvas id="c-mensal-vol" style="max-height:300px!important"></canvas>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📉 Taxa Mensal de Cancelamento (%)</h3>
+      <canvas id="c-tx-cancel"></canvas>
+    </div>
+    <div class="card">
+      <h3>📉 Taxa Mensal de Inadimplência (%)</h3>
+      <canvas id="c-tx-inadimp"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📊 Ativos Acumulados Estimados (Vendas − Cancelados)</h3>
+    <canvas id="c-ativos" style="max-height:220px!important"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>📋 Tabela Mensal Completa</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Mês/Ano</th>
+          <th class="r">Vendas</th>
+          <th class="r">Cancelados</th>
+          <th class="r">% Cancel.</th>
+          <th class="r">Inadimplentes</th>
+          <th class="r">% Inadimp.</th>
+          <th class="r">Ativos Acum.</th>
+          <th class="c">Status</th>
+        </tr>
+      </thead>
+      <tbody id="tab-mensal-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel" id="tab-regional">
+
+  <div class="card">
+    <h3>🗺️ Vendas × Cancelados × Inadimplentes por Regional</h3>
+    <canvas id="c-reg-bar" style="max-height:240px!important"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>📋 Taxas por Regional</h3>
+    <table>
+      <thead><tr>
+        <th>Regional</th>
+        <th class="r">Vendas</th><th class="r">Cancelados</th><th class="r">% Cancel.</th>
+        <th class="r">Inadimplentes</th><th class="r">% Inadimp.</th>
+        <th class="c">Risco</th>
+      </tr></thead>
+      <tbody id="tab-regional-body"></tbody>
+      <tfoot>
+        <tr class="total-row">
+          <td>Subtotal (5 regionais)</td>
+          <td class="r">145.878</td><td class="r">44.195</td><td class="r">30,3%</td>
+          <td class="r">90.178</td><td class="r">61,8%</td><td class="c">—</td>
+        </tr>
+        <tr style="font-size:.74rem;color:var(--muted);background:#f7fafc">
+          <td>Sem regional cadastrada</td>
+          <td class="r">4.122</td><td class="r">1.756</td><td class="r">42,6%</td>
+          <td class="r">1.913</td><td class="r">46,4%</td><td class="c"><span class="tag o">Sem dados</span></td>
+        </tr>
+        <tr class="total-row">
+          <td><b>TOTAL GERAL</b></td>
+          <td class="r"><b>192.961</b></td><td class="r"><b>45.951</b></td><td class="r"><b>23,8%</b></td>
+          <td class="r"><b>92.091</b></td><td class="r"><b>47,7%</b></td><td class="c">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>🏆 Top 20 Franquias — Vendas × Cancelados × Inadimplentes</h3>
+    <canvas id="c-franq" style="max-height:320px!important"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>📋 Ranking Franquias — Taxas de Cancelamento e Inadimplência</h3>
+    <table>
+      <thead><tr>
+        <th>#</th><th>Franquia</th>
+        <th class="r">Vendas</th><th class="r">Cancel.</th><th class="r">% C</th>
+        <th class="r">Inadimp.</th><th class="r">% I</th>
+        <th class="c">Perfil</th>
+      </tr></thead>
+      <tbody id="tab-franq-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel" id="tab-cancelados">
+
+  <div class="kg">
+    <div class="kpi red"><label>Total Cancelados</label><div class="v">45.951</div><div class="s">23,8% das vendas</div></div>
+    <div class="kpi orange"><label>Cancel. Automático</label><div class="v">13.415</div><div class="s">29,2% dos cancels</div><div class="bdg w">Por inadimplência</div></div>
+    <div class="kpi navy"><label>Cancel. Manual</label><div class="v">32.536</div><div class="s">70,8% dos cancels</div></div>
+    <div class="kpi purple"><label>Chargeback</label><div class="v">2.492</div><div class="s">5,4% dos cancels</div><div class="bdg d">Risco regulatório</div></div>
+    <div class="kpi teal"><label>LTV Médio</label><div class="v">R$ 128,80</div><div class="s">Por assinante cancelado</div></div>
+    <div class="kpi yellow"><label>LTV Mediana</label><div class="v">R$ 92,00</div><div class="s">50% pagou menos que isso</div></div>
+    <div class="kpi red"><label>Nunca Logaram</label><div class="v">69,4%</div><div class="s">31.902 cancelados</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>🔴 Tipo de Cancelamento</h3>
+      <canvas id="c-tipo-cancel"></canvas>
+    </div>
+    <div class="card">
+      <h3>📦 Distribuição de LTV (R$) dos Cancelados</h3>
+      <canvas id="c-ltv-dist"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📈 Evolução de Cancelamentos por Mês</h3>
+    <canvas id="c-cancel-evolucao" style="max-height:240px!important"></canvas>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>🎫 Top Vouchers nos Cancelamentos</h3>
+      <div style="margin-top:6px" id="voucher-cancel-bars"></div>
+    </div>
+    <div class="card">
+      <h3>📊 Cancel. Automático × Manual por Período</h3>
+      <canvas id="c-cancel-tipo-m"></canvas>
+      <p style="font-size:.73rem;color:var(--muted);margin-top:10px">Cancel. automático ocorre por inadimplência prolongada, o que os conecta diretamente à régua de cobrança. A presença de <b>DSOP = NÃO</b> em 86,4% dos cancelados indica ausência de proteção financeira — fator de risco.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>💰 Análise de DSOP nos Cancelados</h3>
+    <table>
+      <thead><tr><th>Situação</th><th class="r">Qtd</th><th class="r">% do Cancel.</th><th>Interpretação</th></tr></thead>
+      <tbody>
+        <tr><td>DSOP = NÃO (sem proteção)</td><td class="r">39.717</td><td class="r">86,4%</td><td><span class="tag r">Sem cobertura financeira</span></td></tr>
+        <tr><td>DSOP = SIM (com proteção)</td><td class="r">6.234</td><td class="r">13,6%</td><td><span class="tag g">Com cobertura ativa</span></td></tr>
+        <tr><td>Chargeback confirmado</td><td class="r">2.492</td><td class="r">5,4%</td><td><span class="tag r">Risco regulatório Cielo</span></td></tr>
+        <tr><td>Cancel. Auto (inadimplência)</td><td class="r">13.415</td><td class="r">29,2%</td><td><span class="tag o">Falha na régua de cobrança</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel" id="tab-perfil">
+
+  <div class="sec">🔍 Engajamento — Nunca Logaram (comparativo entre bases)</div>
+
+  <div class="kg">
+    <div class="kpi navy"><label>Vendas — Nunca Logaram</label><div class="v">82,8%</div><div class="s">159.707 de 192.961</div></div>
+    <div class="kpi orange"><label>Cancelados — Nunca Logaram</label><div class="v">69,4%</div><div class="s">31.902 de 45.951</div></div>
+    <div class="kpi red"><label>Inadimplentes — Nunca Logaram</label><div class="v">89,0%</div><div class="s">81.940 de 92.091</div></div>
+  </div>
+
+  <div class="card">
+    <h3>📱 Engajamento por Base (% que nunca logou)</h3>
+    <canvas id="c-login-compare" style="max-height:180px!important"></canvas>
+    <p style="font-size:.74rem;color:var(--muted);margin-top:10px">O inadimplente tem o menor engajamento (89%) — o que reforça que a inadimplência é estrutural e não relacionada ao uso. Curiosamente, os <b>cancelados têm mais engajamento</b> (30,6% logaram pelo menos 1x) — alguns cancelaram conscientemente após usar o produto.</p>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>🔗 Canal de Origem — Comparativo</h3>
+      <table>
+        <thead><tr><th>Canal</th><th class="r">Vendas</th><th class="r">% Vendas</th><th class="r">Cancelados</th><th class="r">% Cancel.</th></tr></thead>
+        <tbody>
+          <tr><td>Link do Vendedor</td><td class="r">145.895</td><td class="r">97,3%</td><td class="r">44.209</td><td class="r">96,2%</td></tr>
+          <tr><td>Site</td><td class="r">2.848</td><td class="r">1,9%</td><td class="r">1.270</td><td class="r">2,8%</td></tr>
+          <tr><td>AppMaisTODOS</td><td class="r">1.180</td><td class="r">0,8%</td><td class="r">462</td><td class="r">1,0%</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:.73rem;color:var(--muted);margin-top:8px">Site tem taxa de cancel. proporcionalmente maior (44,6%) vs Link do Vendedor (30,3%) — assinantes do site podem ter menos apoio pós-venda. Taxa de cancelamento do Site: 36,3% (1.270 de 3.496).</p>
+    </div>
+    <div class="card">
+      <h3>📦 Plano — Comparativo</h3>
+      <table>
+        <thead><tr><th>Plano</th><th class="r">Vendas</th><th class="r">Cancel.</th><th class="r">% C</th><th class="r">Inadimp.</th><th class="r">% I</th></tr></thead>
+        <tbody>
+          <tr><td>Tô no Gás</td><td class="r">140.454</td><td class="r">39.325</td><td class="r">28,0%</td><td class="r">77.139</td><td class="r">54,9%</td></tr>
+          <tr><td>Individual CDT</td><td class="r">51.802</td><td class="r">6.542</td><td class="r"><b style="color:var(--orange)">12,6%</b></td><td class="r">14.874</td><td class="r"><b style="color:var(--orange)">28,7%</b></td></tr>
+          <tr><td>Família CDT</td><td class="r">554</td><td class="r">30</td><td class="r">5,4%</td><td class="r">50</td><td class="r">9,0%</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:.73rem;color:var(--muted);margin-top:8px"><b>Individual CDT</b> tem taxa de cancelamento de 72,9% — o plano mais problemático. A inadimplência de 165,7% indica que muitos inadimplentes foram de meses anteriores às vendas registradas.</p>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>🎫 Top Vouchers — Vendas vs Cancelamentos</h3>
+      <canvas id="c-voucher-compare"></canvas>
+    </div>
+    <div class="card">
+      <h3>💡 DSOP — Comparativo entre Bases</h3>
+      <canvas id="c-dsop"></canvas>
+      <p style="font-size:.73rem;color:var(--muted);margin-top:10px">DSOP presente em 67,9% das vendas mas apenas 13,6% dos cancelados — o assinante com DSOP ativo tem <b>menor propensão a cancelar</b>. Pode ser usado como fator de retenção.</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel active" id="tab-cohort_visao">
+
+  <div class="kg">
+    <div class="kpi red"><label>Tempo Médio Ativo</label><div class="v">4,2 meses</div><div class="s">127 dias em média</div><div class="bdg d">Muito curto</div></div>
+    <div class="kpi orange"><label>Mediana do Tempo</label><div class="v">3,0 meses</div><div class="s">90 dias — 50% dura menos</div></div>
+    <div class="kpi red"><label>Cancel em ≤ 30 dias</label><div class="v">25,1%</div><div class="s">1 em cada 4 assinantes</div><div class="bdg d">Churn precoce grave</div></div>
+    <div class="kpi orange"><label>Cancel em ≤ 3 meses</label><div class="v">51,5%</div><div class="s">Metade sai em 90 dias</div><div class="bdg w">Janela crítica</div></div>
+    <div class="kpi teal"><label>Retenção em M1</label><div class="v">93,4%</div><div class="s">Sobrevivem ao 1º mês</div></div>
+    <div class="kpi red"><label>Retenção em M7</label><div class="v">83,1%</div><div class="s">Queda suave até M7</div></div>
+    <div class="kpi red"><label>Cliff em M7→M8</label><div class="v">−14,0 pp</div><div class="s">Maior queda única</div><div class="bdg d">Penhasco de 6 meses</div></div>
+    <div class="kpi purple"><label>Retenção em M12</label><div class="v">51,6%</div><div class="s">Metade cancela no 1º ano</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📈 Curva de Retenção Média (todas as safras observáveis)</h3>
+      <canvas id="c-retencao-media"></canvas>
+      <p class="card-note">Cada ponto representa a % média de assinantes ainda ativos naquele mês de vida, ponderada pelas safras com observação completa para aquele mês. O <b>cliff em M7→M8</b> (-13,8 pp) é o evento mais crítico: concentração de cancelamentos automáticos por inadimplência aos ~6 meses.</p>
+    </div>
+    <div class="card">
+      <h3>📉 Churn Mensal Médio por Mês de Vida (%)</h3>
+      <canvas id="c-churn-mensal"></canvas>
+      <p class="card-note">M0 (9,4%) e M7 (14,0%) são os picos de churn. M0 representa desistências imediatas após a venda. M7 representa o cancelamento automático de assinantes que acumularam 6 meses de inadimplência sem regularização.</p>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <h3>⏱️ Distribuição de Duração dos Cancelados</h3>
+      <canvas id="c-dist-dur"></canvas>
+    </div>
+    <div class="card">
+      <h3>💰 LTV Médio por Faixa de Duração (R$)</h3>
+      <canvas id="c-ltv-dur"></canvas>
+      <p class="card-note">LTV cresce linearmente com o tempo. Assinantes que ficam 6-12 meses geram R$238 vs R$6 para os que saem em 7 dias.</p>
+    </div>
+    <div class="card">
+      <h3>⏳ Tempo Médio de Cancelados por Safra (meses)</h3>
+      <canvas id="c-tempo-safra"></canvas>
+      <p class="card-note">Safras mais antigas (jan-abr/25) têm tempo médio maior (~6m) por acumularem cancelamentos tardios. Safras recentes têm médias menores por observação incompleta.</p>
+    </div>
+  </div>
+
+  <div class="insight">
+    <h4>💡 Leitura do Ciclo de Vida</h4>
+    <p>A curva de sobrevivência revela um padrão em <b>dois estágios</b>: (1) <b>queda suave de M0 a M7</b> — churn orgânico de ~1% ao mês por insatisfação ou erro de compra; (2) <b>cliff em M7-M8</b> — cancelamento em massa (~14% de churn no mês) de assinantes que estavam inadimplentes e atingiram o limite da régua de cobrança (~6 meses). Após o cliff, o churn volta a cair para ~1% ao mês — quem sobrevive ao M8 tende a permanecer por mais tempo. A janela crítica de retenção é <b>os primeiros 30 dias</b> (25,1% cancela) e <b>o mês 7</b> (penhasco da régua).</p>
+  </div>
+</div>
+
+<div class="panel" id="tab-survival">
+
+  <div class="note-box">
+    ⚠️ <b>Nota metodológica:</b> Análise inclui apenas as 13 safras com dados de vendas completos (Jan/25 a Jan/26). Safras de Fev/26 em diante têm vendas subregistradas (arquivo de vendas atingiu limite de exportação de 150.000 linhas) e foram excluídas das curvas de sobrevivência para não distorcer as taxas.
+  </div>
+
+  <div class="card">
+    <h3>📈 Curvas de Sobrevivência por Safra — Jan/25 a Jan/26</h3>
+    <div class="legend-row" id="survival-legend"></div>
+    <canvas id="c-survival-all" style="max-height:320px!important"></canvas>
+    <p class="card-note">Cada linha representa uma safra de venda. O eixo X = meses de vida do assinante. O eixo Y = % ainda ativos. O <b>cliff vertical em M7→M8</b> nas safras jan-abr/25 marca o momento em que assinantes com 6+ meses de inadimplência foram cancelados automaticamente.</p>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📊 Survival por Safra — M1, M3, M6, M12</h3>
+      <table>
+        <thead><tr>
+          <th>Safra</th><th class="c">Vendas</th>
+          <th class="c">M1 (30d)</th><th class="c">M3 (90d)</th>
+          <th class="c">M6 (180d)</th><th class="c">M12 (1 ano) ⚠️</th>
+          <th class="c">Perfil</th>
+        </tr></thead>
+        <tbody id="tab-survival-body"></tbody>
+        <tfoot>
+          <tr style="background:#edf2f7;font-weight:700">
+            <td>Média M1–M6 (13 safras)</td><td class="c">—</td>
+            <td class="c">93,4%</td><td class="c">86,8%</td>
+            <td class="c">83,6%</td><td class="c">—</td>
+            <td class="c">—</td>
+          </tr>
+          <tr style="background:#fff5f5;font-size:.76rem;color:var(--red)">
+            <td><b>Média M12 (6 safras completas)</b></td><td class="c">—</td>
+            <td class="c">—</td><td class="c">—</td>
+            <td class="c">—</td><td class="c"><b>51,6%</b></td>
+            <td class="c" style="font-size:.69rem;color:var(--muted)">Jan–Jun/25</td>
+          </tr>
+          <tr style="background:#fffbea;font-size:.72rem;color:var(--muted)">
+            <td colspan="7" style="padding:7px 10px">
+              ⚠️ <b>M12 parcial (Jul/25–Jan/26):</b> essas 7 safras ainda não completaram 12 meses de observação na data-base (11/06/2026). O valor exibido é o cancelamento acumulado até o último mês observado — o cliff de M7→M8 ainda vai ocorrer nessas safras, derrubando o M12 real para próximo de 45–55%. O perfil será revisado quando completarem 12 meses.
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="card">
+      <h3>🎯 Comparativo M1 vs M12 por Safra</h3>
+      <canvas id="c-m1-vs-m12"></canvas>
+      <p class="card-note">Exibe apenas as <b>6 safras com M12 completo</b> (Jan–Jun/25). A perda entre M1 e M12 evidencia o cliff de M7–M8: Jan–Abr/25 perdem 45–62 pp em um único mês. Mai e Jun/25 ainda não sofreram o cliff — mas o histórico sugere que sofrerão quando atingirem M13–M14.</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="tab-cohort">
+
+  <div class="note-box">
+    ⚠️ Células mostram o <b>% acumulado cancelado</b> naquele mês de vida da safra. Cor: verde = baixo cancelamento acumulado | amarelo = intermediário | vermelho = alto. Células em cinza = mês ainda não observável (safra nova).
+  </div>
+
+  <div class="card">
+    <h3>🔢 Heatmap de Cohort — % Cancelado Acumulado por Mês de Vida</h3>
+    <div class="cohort-wrap">
+      <table class="cohort-table" id="cohort-heatmap"></table>
+    </div>
+    <p class="card-note">Leitura: cada linha é uma safra de entrada (mês em que o assinante comprou). Cada coluna é o mês de vida (M0 = primeiro mês após a compra). O valor é o % da safra que já cancelou até aquele mês. O <b>salto drástico em M7</b> nas safras jan-abr/25 evidencia o penhasco da régua.</p>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📊 Cancelamento Acumulado até M3 por Safra (%)</h3>
+      <canvas id="c-acum-m3"></canvas>
+      <p class="card-note">Cancelamento acumulado nos primeiros 3 meses. Safras recentes (nov/25, dez/25, jan/26) têm M3 alto (15-16%) por conta do padrão de cancelamento imediato que se intensificou em 2026.</p>
+    </div>
+    <div class="card">
+      <h3>📊 Cancelamento Total por Safra (% do total vendido)</h3>
+      <canvas id="c-cancel-safra"></canvas>
+      <p class="card-note">% de cancelados sobre o total vendido por safra. Safras jan-abr/25 atingem 55-70% de cancelamento total — período com mais tempo de observação. Safras recentes mostram 10-20% mas são sub-observadas.</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="tab-safra">
+
+  <div class="card">
+    <h3>📅 Tabela Completa por Safra de Venda</h3>
+    <table>
+      <thead><tr>
+        <th>Safra</th><th class="r">Vendas</th><th class="r">Cancelados</th>
+        <th class="r">% Cancel.</th><th class="r">Tempo Médio</th>
+        <th class="r">LTV Médio</th><th class="c">M1</th><th class="c">M3</th>
+        <th class="c">M6</th><th class="c">Dados</th>
+      </tr></thead>
+      <tbody id="tab-safra-body"></tbody>
+    </table>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📈 Vendas vs Cancelados por Safra</h3>
+      <canvas id="c-safra-vc"></canvas>
+    </div>
+    <div class="card">
+      <h3>⏱️ Evolução da Taxa de Cancel. M3 por Safra de Entrada</h3>
+      <canvas id="c-safra-m3-trend"></canvas>
+      <p class="card-note">Tendência da taxa de cancelamento nos primeiros 3 meses por safra. Crescimento de 7,8% (jan/25) para 16,1% (jan/26) indica piora na qualidade das vendas ao longo do tempo.</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="tab-duracao">
+
+  <div class="kg">
+    <div class="kpi red"><label>Cancelados em 7 dias</label><div class="v">2.275</div><div class="s">5,0% — LTV médio R$6</div></div>
+    <div class="kpi orange"><label>8 a 30 dias</label><div class="v">7.203</div><div class="s">15,7% — LTV médio R$30</div></div>
+    <div class="kpi yellow"><label>1 a 2 meses</label><div class="v">8.850</div><div class="s">19,3% — LTV médio R$52</div></div>
+    <div class="kpi teal"><label>6 a 12 meses</label><div class="v">17.101</div><div class="s">37,2% — LTV médio R$238</div></div>
+    <div class="kpi green"><label>12 meses+</label><div class="v">615</div><div class="s">1,3% — LTV médio R$421</div></div>
+    <div class="kpi navy"><label>P25</label><div class="v">30 dias</div><div class="s">25% cancela em até 1 mês</div></div>
+    <div class="kpi purple"><label>P75</label><div class="v">227 dias</div><div class="s">75% cancela em até 7,5 meses</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📊 Distribuição de Tempo até o Cancelamento</h3>
+      <canvas id="c-dist-dur2"></canvas>
+      <p class="card-note">A distribuição é <b>bimodal</b>: um pico nos primeiros 30 dias (churn imediato) e um pico maior em 6-12 meses (churn tardio pelo cliff da régua). Pouquíssimos assinantes cancelam entre 3-6 meses.</p>
+    </div>
+    <div class="card">
+      <h3>💰 LTV Médio (R$) × Tempo de Permanência</h3>
+      <canvas id="c-ltv-dur2"></canvas>
+      <p class="card-note">A cada mês adicional de permanência, o LTV cresce. Assinantes que duram 12+ meses geram <b>70× mais receita</b> do que os que cancelam em 7 dias (R$421 vs R$6). Cada mês a mais de retenção vale aproximadamente R$35 de LTV adicional.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>💡 Cálculo do Valor da Retenção</h3>
+    <table>
+      <thead><tr>
+        <th>Faixa de Duração</th><th class="r">Qtd</th><th class="r">% do Total</th>
+        <th class="r">LTV Médio</th><th class="r">Receita Total Est.</th>
+        <th class="c">Prioridade de Retenção</th>
+      </tr></thead>
+      <tbody>
+        <tr><td>0–7 dias</td><td class="r">2.275</td><td class="r">5,0%</td><td class="r">R$ 5,98</td><td class="r">R$ 13.605</td><td class="c"><span class="tag r">Recuperação barata</span></td></tr>
+        <tr><td>8–30 dias</td><td class="r">7.203</td><td class="r">15,7%</td><td class="r">R$ 30,18</td><td class="r">R$ 217.337</td><td class="c"><span class="tag o">Alta prioridade</span></td></tr>
+        <tr><td>1–2 meses</td><td class="r">8.850</td><td class="r">19,3%</td><td class="r">R$ 52,49</td><td class="r">R$ 464.537</td><td class="c"><span class="tag o">Alta prioridade</span></td></tr>
+        <tr><td>2–3 meses</td><td class="r">3.282</td><td class="r">7,1%</td><td class="r">R$ 82,95</td><td class="r">R$ 272.244</td><td class="c"><span class="tag b">Média prioridade</span></td></tr>
+        <tr><td>3–4 meses</td><td class="r">1.941</td><td class="r">4,2%</td><td class="r">R$ 111,39</td><td class="r">R$ 216.218</td><td class="c"><span class="tag b">Média prioridade</span></td></tr>
+        <tr><td>4–6 meses</td><td class="r">2.626</td><td class="r">5,7%</td><td class="r">R$ 152,30</td><td class="r">R$ 399.941</td><td class="c"><span class="tag g">Já gerou valor</span></td></tr>
+        <tr><td>6–12 meses</td><td class="r">17.101</td><td class="r">37,2%</td><td class="r">R$ 238,17</td><td class="r">R$ 4.072.899</td><td class="c"><span class="tag g">Alto valor gerado</span></td></tr>
+        <tr><td>12 meses+</td><td class="r">615</td><td class="r">1,3%</td><td class="r">R$ 421,41</td><td class="r">R$ 259.167</td><td class="c"><span class="tag p">Melhor perfil</span></td></tr>
+        <tr style="font-weight:700;background:#edf2f7"><td>TOTAL</td><td class="r">43.893</td><td class="r">100%</td><td class="r">R$ 128,80</td><td class="r">R$ 5.915.948</td><td class="c">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ═══════════ AGING ═══════════ -->
+<div class="panel" id="tab-aging">
+
+  <!-- Eficiência de Cobrança -->
+  <div style="background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:10px;padding:16px 20px;margin-bottom:16px;border-left:5px solid var(--orange)">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="color:rgba(255,255,255,.65);font-size:.72rem;text-transform:uppercase;letter-spacing:.7px;font-weight:600">Eficiência de Cobrança (Adimplentes / Ativos)</div>
+        <div style="color:#fff;font-size:2.2rem;font-weight:800;line-height:1;margin-top:4px">37,4%</div>
+        <div style="color:rgba(255,255,255,.6);font-size:.8rem;margin-top:4px">54.923 adimplentes de 147.010 ativos — apenas 37 em cada 100 pagam regularmente</div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="color:#fc8181;font-size:1.5rem;font-weight:800">62,6%</div>
+          <div style="color:rgba(255,255,255,.55);font-size:.72rem">% Inadimplentes<br>sobre ativos</div>
+        </div>
+        <div style="text-align:center">
+          <div style="color:#fbd38d;font-size:1.5rem;font-weight:800">47,7%</div>
+          <div style="color:rgba(255,255,255,.55);font-size:.72rem">% Inadimplentes<br>sobre vendas</div>
+        </div>
+        <div style="text-align:center">
+          <div style="color:#81e6d9;font-size:1.5rem;font-weight:800">23,8%</div>
+          <div style="color:rgba(255,255,255,.55);font-size:.72rem">% Cancelados<br>sobre vendas</div>
+        </div>
+        <div style="text-align:center">
+          <div style="color:#fbd38d;font-size:1.5rem;font-weight:800">277d</div>
+          <div style="color:rgba(255,255,255,.55);font-size:.72rem">Atraso médio<br>dos inadimp.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="kg">
+    <div class="kpi green" style="border-color:#38A169">
+      <label>✅ Adimplentes (eficientes)</label>
+      <div class="v" style="color:var(--green)">54.923</div>
+      <div class="s">37,4% dos ativos pagam em dia</div>
+      <div class="bdg g">Eficiência: 37,4%</div>
+    </div>
+    <div class="kpi red">
+      <label>❌ Inadimplentes (ativos)</label>
+      <div class="v">92.091</div>
+      <div class="s">62,6% dos ativos em atraso</div>
+      <div class="bdg d">Ineficiência: 62,6%</div>
+    </div>
+    <div class="kpi green"><label>Até 60 dias</label><div class="v">326</div><div class="s">0,4% — mais recuperável</div><div class="bdg g">Baixo risco</div></div>
+    <div class="kpi yellow"><label>61–120 dias</label><div class="v">7.563</div><div class="s">8,2% — janela crítica</div><div class="bdg w">Ação imediata</div></div>
+    <div class="kpi orange"><label>121–180 dias</label><div class="v">12.818</div><div class="s">13,9% — pré-cliff</div><div class="bdg w">Negociação urgente</div></div>
+    <div class="kpi red"><label>181+ dias</label><div class="v">71.384</div><div class="s">77,6% — cliff zone + crítico</div><div class="bdg d">856 suspensos</div></div>
+  </div>
+
+  <div class="g2" style="margin-bottom:16px">
+    <div class="card">
+      <h3>🎯 Eficiência de Cobrança por Regional</h3>
+      <canvas id="c-efic-regional"></canvas>
+      <p class="card-note">Costa Leste tem a melhor eficiência (41,4%), Equatorial a pior (33,1%). A meta mínima aceitável seria 50% — nenhuma regional atinge esse patamar.</p>
+    </div>
+    <div class="card">
+      <h3>📊 Composição da Base Ativa</h3>
+      <canvas id="c-composicao-ativa"></canvas>
+      <p class="card-note">De cada 100 assinantes ativos (não cancelados), apenas 37 estão adimplentes. Os outros 63 são inadimplentes distribuídos pelas faixas de aging.</p>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📊 Distribuição por Faixa de Atraso</h3>
+      <canvas id="c-aging-dist"></canvas>
+      <p class="card-note">A faixa 181–365 dias concentra 53,2% dos inadimplentes — o perfil que alimenta o cliff de M7→M8 no cohort. São assinantes que já ultrapassaram a janela da régua de cobrança ativa sem regularizar.</p>
+    </div>
+    <div class="card">
+      <h3>📈 Curva de Pareto — % Acumulado</h3>
+      <canvas id="c-aging-pareto"></canvas>
+      <p class="card-note">As 2 faixas mais antigas (181d+) concentram <b>77,6% do total</b>. Focar esforços de recuperação nesses grupos maximiza o impacto na carteira.</p>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📊 Aging × Status (Pendente / Suspenso)</h3>
+      <canvas id="c-aging-status"></canvas>
+      <p class="card-note">Suspensos surgem apenas a partir de 181 dias — confirmando que o cancelamento automático dispara após o ciclo completo da régua. Todas as faixas menores são 100% Pendente (cobrança ativa).</p>
+    </div>
+    <div class="card">
+      <h3>🔐 Aging × DSOP e Cashback</h3>
+      <canvas id="c-aging-dsop"></canvas>
+      <p class="card-note">DSOP e Cashback ativos se distribuem uniformemente entre as faixas — o benefício não funcionou como âncora de pagamento. Comunicar <b>perda de benefícios</b> antes dos 180 dias pode mudar esse cenário.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🗺️ Aging por Regional</h3>
+    <canvas id="c-aging-reg" style="max-height:280px!important"></canvas>
+  </div>
+
+  <div class="card">
+    <h3>📋 Tabela Detalhada de Aging</h3>
+    <table>
+      <thead><tr>
+        <th>Faixa de Atraso</th>
+        <th class="r">Qtd</th><th class="r">%</th><th class="r">% Acum.</th>
+        <th class="r">Pendente</th><th class="r">Suspenso</th>
+        <th class="r">Média Dias</th>
+        <th class="r">DSOP</th><th class="r">Cashback</th>
+        <th class="c">Prioridade</th>
+      </tr></thead>
+      <tbody id="tab-aging-body"></tbody>
+      <tfoot>
+        <tr style="font-weight:700;background:#edf2f7">
+          <td>TOTAL</td>
+          <td class="r">92.091</td><td class="r">100%</td><td class="r">—</td>
+          <td class="r">91.235</td><td class="r">856</td>
+          <td class="r">277d</td>
+          <td class="r">83.121</td><td class="r">85.472</td>
+          <td class="c">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>📦 Aging por Plano</h3>
+    <table>
+      <thead><tr>
+        <th>Faixa</th>
+        <th class="r">Tô no Gás</th><th class="r">%</th>
+        <th class="r">Individual CDT</th><th class="r">%</th>
+        <th class="r">Família CDT</th><th class="r">%</th>
+      </tr></thead>
+      <tbody id="tab-aging-plano"></tbody>
+    </table>
+  </div>
+
+  <div class="insight">
+    <h4>💡 Estratégia de Recuperação por Faixa</h4>
+    <p>
+      <b>31–120 dias (7.889 — 8,6%):</b> Régua ativa — reforçar comunicação de perda de cashback e DSOP. Meta: regularizar antes dos 180 dias.<br><br>
+      <b>121–180 dias (12.818 — 13,9%):</b> Pré-cliff. Intervenção manual com proposta de parcelamento antes do cancelamento automático.<br><br>
+      <b>181–365 dias (48.955 — 53,2%):</b> Cliff zone. Abordagem de reativação com desconto. Alta chance de cancelamento automático em breve.<br><br>
+      <b>366+ dias (22.429 — 24,4%):</b> Grupo mais antigo — 856 já suspensos. Campanha de quitação com desconto expressivo (50%+) para recuperar parte do LTV perdido.
+    </p>
+  </div>
+</div>
+
+<div class="panel" id="tab-vendas_inad">
+
+  <div class="kg">
+    <div class="kpi green"><label>Total Vendas</label><div class="v">192.961</div><div class="s">Jan/25 – Jun/26</div></div>
+    <div class="kpi navy"><label>Ativos Totais</label><div class="v">147.010</div><div class="s">76,2% das vendas</div></div>
+    <div class="kpi red"><label>Inadimplentes Ativos</label><div class="v">92.091</div><div class="s">62,6% dos ativos</div><div class="bdg d">Crítico</div></div>
+    <div class="kpi green"><label>Adimplentes</label><div class="v">54.923</div><div class="s">37,4% dos ativos</div></div>
+    <div class="kpi orange"><label>Inad. % sobre Vendas</label><div class="v">61,4%</div><div class="s">92.091 registros</div></div>
+    <div class="kpi red"><label>Pior mês — Inad./Ativos</label><div class="v">&gt;100%</div><div class="s">Fev–Mar/26 (carteira retraindo)</div><div class="bdg d">Alerta</div></div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>📊 Vendas vs Inadimplentes — Volume Mensal</h3>
+      <canvas id="c-vi-mensal"></canvas>
+      <p class="card-note">A inadimplência supera as vendas em vários meses de 2026, reflexo do acúmulo de assinantes inadimplentes que não são cancelados mas também não pagam.</p>
+    </div>
+    <div class="card">
+      <h3>📉 Taxa de Inadimplência sobre Vendas do Mês (%)</h3>
+      <canvas id="c-vi-taxa"></canvas>
+      <p class="card-note">A taxa mensal é a razão entre inadimplentes daquele mês e as vendas do mesmo mês — indica a "produtividade" da carteira recém-adquirida. Valores acima de 100% ocorrem porque os inadimplentes acumulam de meses anteriores.</p>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <h3>🗺️ Inadimplência por Regional — Taxa sobre Ativos (%)</h3>
+      <canvas id="c-vi-regional"></canvas>
+      <p class="card-note">Centro Sul e Equatorial têm as maiores taxas de inadimplência sobre ativos (91,0% e 90,8%) — mais de 9 em cada 10 assinantes ativos dessas regionais estão inadimplentes.</p>
+    </div>
+    <div class="card">
+      <h3>📦 Vendas × Inadimplência por Plano</h3>
+      <canvas id="c-vi-plano"></canvas>
+      <p class="card-note">O plano Individual CDT tem taxa de inadimplência de 165,7% sobre as vendas — significa que há mais inadimplentes do que vendas registradas no período (acúmulo de meses anteriores ao jan/25).</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🗺️ Detalhamento por Regional</h3>
+    <table>
+      <thead><tr>
+        <th>Regional</th><th class="r">Vendas</th><th class="r">Cancelados</th>
+        <th class="r">Ativos</th><th class="r">Inadimplentes</th>
+        <th class="r">% Inad/Vendas</th><th class="r">% Inad/Ativos</th><th class="c">Risco</th>
+      </tr></thead>
+      <tbody id="tab-vi-regional"></tbody>
+      <tfoot><tr style="font-weight:700;background:#edf2f7">
+        <td>TOTAL</td><td class="r">192.961</td><td class="r">45.951</td>
+        <td class="r">147.010</td><td class="r">92.091</td>
+        <td class="r">47,7%</td><td class="r">62,6%</td>
+        <td class="c">—</td>
+      </tr>
+      <tr style="font-size:.72rem;color:var(--muted);background:#fffbea">
+        <td colspan="8">* % Inad/Ativos total usa 92.091 inadimplentes ativos (CPF único) sobre 147.014 ativos = 62,6%. A soma das regionais exclui 1.913 inadimplentes sem regional cadastrada.</td>
+      </tr></tfoot>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>🎫 Vouchers — Taxa de Cancelamento e Inadimplência</h3>
+    <table>
+      <thead><tr>
+        <th>Voucher</th><th class="r">Vendas</th>
+        <th class="r">Cancelados</th><th class="r">% Cancel.</th>
+        <th class="r">Inadimplentes</th><th class="r">% Inadimp.</th>
+        <th class="c">Perfil</th>
+      </tr></thead>
+      <tbody id="tab-vi-voucher"></tbody>
+    </table>
+    <p class="card-note" style="margin-top:10px">Vouchers com alta inadimplência e baixo cancelamento indicam assinantes que ficam na base sem pagar. SONHOS e AGOSTO25 têm esse perfil — 68–71% inadimplentes sobre vendas, mas cancelamento baixo (11–15%).</p>
+  </div>
+
+  <div class="card">
+    <h3>📋 Parecer Final — Situação da Carteira</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--red);margin-bottom:8px;border-bottom:2px solid var(--red);padding-bottom:4px">🚨 SITUAÇÃO CRÍTICA</div>
+        <div style="font-size:.79rem;color:var(--text);line-height:1.65">
+          <b>62,6% dos ativos inadimplentes:</b> de cada 10 assinantes que não cancelaram, apenas ~4 pagam regularmente. A carteira ativa é majoritariamente inadimplente.<br><br>
+          <b>Cliff de M7 confirmado:</b> safras jan–abr/25 perderam 33–49 pp de survival em um único mês (M7→M8), por cancelamento automático de inadimplentes acumulados. O mesmo ocorrerá com as safras jul/25–jan/26 quando atingirem o M7.<br><br>
+          <b>Qualidade deteriorando:</b> o cancelamento acumulado em M3 dobrou de 7,8% (jan/25) para 16,1% (jan/26). As safras novas chegam ao M3 com churn 2× pior que as antigas.<br><br>
+          <b>Carteira em retração líquida:</b> de fev/26 em diante, cancelamentos superam vendas todo mês. A base está encolhendo.
+        </div>
+      </div>
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--teal);margin-bottom:8px;border-bottom:2px solid var(--teal);padding-bottom:4px">✅ O QUE FUNCIONA</div>
+        <div style="font-size:.79rem;color:var(--text);line-height:1.65">
+          <b>M1 consistente (~93%):</b> o churn no 1º mês é controlado — os assinantes que passam os primeiros 30 dias tendem a permanecer por mais tempo.<br><br>
+          <b>Pós-M8 estável (~1%/mês):</b> quem sobrevive ao cliff tem churn mínimo. O produto retém bem quem supera a barreira da inadimplência.<br><br>
+          <b>DSOP como âncora:</b> apenas 13,6% dos cancelados tinham DSOP ativo vs 67,9% das vendas — o produto DSOP reduz significativamente o cancelamento voluntário.<br><br>
+          <b>Volume de ativos ainda relevante:</b> 147.010 assinantes ativos representam uma base expressiva para ações de regularização e retenção.
+        </div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--orange);margin-bottom:8px;border-bottom:2px solid var(--orange);padding-bottom:4px;margin-top:14px">🎯 PRIORIDADES IMEDIATAS</div>
+        <div style="font-size:.79rem;color:var(--text);line-height:1.65">
+          1. Reativar D15 e RETRY na régua de cobrança<br>
+          2. Campanha de regularização dos 92.091 inadimplentes ativos<br>
+          3. Onboarding nos primeiros 7 dias para reduzir M0 de 6,6% para abaixo de 4%<br>
+          4. Revisar comissionamento — vincular parte à permanência no M3
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="tab-alertas_pc">
+
+  <div class="alert d"><div class="al-icon">🚨</div><div>
+    <div class="al-t">CRÍTICO — 62,6% dos assinantes ativos estão inadimplentes</div>
+    <div class="al-b">Do total de 147.010 assinantes ativos (não cancelados), <b>92.091 estão inadimplentes</b> e apenas <b>54.923 (37,4%) estão adimplentes</b>. Isso significa que menos de 1 em cada 4 assinantes ativos está pagando regularmente. A carteira ativa está majoritariamente inadimplente — o produto existe mas a receita recorrente não se materializa.</div>
+  </div></div>
+
+  <div class="alert d"><div class="al-icon">🚨</div><div>
+    <div class="al-t">CRÍTICO — Taxa de cancelamento superou 100% das vendas em 5 meses de 2026</div>
+    <div class="al-b">De Fev a Jun/2026, o volume de cancelamentos superou o de novas vendas (Feb: 107,5%, Mar: 122,0%, Abr: 107,3%, Mai: 134,0%, Jun: 293,8%). A carteira está em retração líquida — mais assinantes saindo do que entrando. Ação emergencial em novos canais de vendas é necessária.</div>
+  </div></div>
+
+  <div class="alert d"><div class="al-icon">🚨</div><div>
+    <div class="al-t">CRÍTICO — Individual CDT com taxa de cancelamento de 72,9%</div>
+    <div class="al-b">O plano Tô no Gás Individual CDT mensal teve 6.542 cancelamentos em 8.976 vendas (72,9%). É o plano com maior risco da carteira. Revisão do produto, precificação e processo de venda deste plano é urgente.</div>
+  </div></div>
+
+  <div class="alert d"><div class="al-icon">📉</div><div>
+    <div class="al-t">CRÍTICO — 81,7% das vendas nunca geraram acesso à plataforma</div>
+    <div class="al-b">159.707 de 192.961 assinantes nunca fizeram login (82,8%). Sem uso, não há percepção de valor — o que gera tanto inadimplência quanto cancelamento. Com 82,8% das vendas sem nenhum login registrado, O onboarding pós-venda é praticamente inexistente.</div>
+  </div></div>
+
+  <div class="alert d"><div class="al-icon">💳</div><div>
+    <div class="al-t">ALTO — Chargeback de 5,4% (2.492 casos) acima do limiar regulatório</div>
+    <div class="al-b">O limiar da Cielo para chargeback é 1%. Com 5,4%, a Refuturiza está 5x acima do tolerado, expondo a operação a penalidades e possível bloqueio de processamento. Implementar antifraude na aquisição é prioridade imediata.</div>
+  </div></div>
+
+  <div class="alert w"><div class="al-icon">⚠️</div><div>
+    <div class="al-t">ATENÇÃO — Centro Sul com maior taxa de cancelamento regional (34,8%)</div>
+    <div class="al-b">Centro Sul lidera o cancelamento percentual entre as regionais. Combinado com inadimplência de 59,3%, concentra um perfil de carteira de alto risco. Revisar processo seletivo de vendedores nessa regional.</div>
+  </div></div>
+
+  <div class="alert w"><div class="al-icon">⚠️</div><div>
+    <div class="al-t">ATENÇÃO — TONOGAS e SONHOS concentram 44% dos cancelamentos</div>
+    <div class="al-b">Os dois principais vouchers de cancelamento (TONOGAS: 16.746, SONHOS: 3.446) são responsáveis por 44% dos cancels. Esses vouchers precisam ser revistos — podem estar atraindo assinantes de baixa qualidade por desconto excessivo sem comprometimento real.</div>
+  </div></div>
+
+  <div class="alert i"><div class="al-icon">💡</div><div>
+    <div class="al-t">OPORTUNIDADE — Cancelados com DSOP têm menor taxa de evasão</div>
+    <div class="al-b">Apenas 13,6% dos cancelados tinham DSOP ativo (vs 67,9% das vendas). O produto DSOP funciona como âncora de retenção. Estratégia de ativação do DSOP imediatamente após a venda pode reduzir cancelamentos.</div>
+  </div></div>
+
+  <div class="alert i"><div class="al-icon">💡</div><div>
+    <div class="al-t">OPORTUNIDADE — LTV mediana de R$92 indica potencial de recuperação</div>
+    <div class="al-b">Com 45.951 cancelados e LTV médio de R$128,80, há R$5,9M de receita perdida. Além disso, os 92.091 inadimplentes ainda ativos representam uma oportunidade de regularização imediata. Uma campanha de reativação com 10% de taxa de sucesso (4.595 reativados) geraria R$592K de receita incremental.</div>
+  </div></div>
+
+  <div class="card" style="margin-top:6px">
+    <h3>📋 Plano de Ação Prioritário</h3>
+    <table>
+      <thead><tr><th>Prior.</th><th>Ação</th><th>Métrica-Alvo</th><th>Prazo</th><th>Responsável</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag r">🔴 Imediato</span></td><td>Acionar protocolo antifraude para reduzir chargeback</td><td>Chargeback &lt; 1%</td><td>Esta semana</td><td>TI + Financeiro</td></tr>
+        <tr><td><span class="tag r">🔴 Imediato</span></td><td>Suspender / revisar plano Individual CDT (72,9% cancel)</td><td>Taxa cancel &lt; 30%</td><td>15 dias</td><td>Produto + Comercial</td></tr>
+        <tr><td><span class="tag r">🔴 Imediato</span></td><td>Campanha de onboarding para os 122K que nunca logaram</td><td>Login rate &gt; 30%</td><td>30 dias</td><td>Marketing + TI</td></tr>
+        <tr><td><span class="tag o">🟠 Curto</span></td><td>Revisar vouchers TONOGAS e SONHOS — critérios de elegibilidade</td><td>Reduzir cancel. desses vouchers 20%</td><td>30 dias</td><td>Comercial</td></tr>
+        <tr><td><span class="tag o">🟠 Curto</span></td><td>Ativar DSOP imediatamente após aquisição (aumenta retenção)</td><td>DSOP ativo em 80% dos novos</td><td>30 dias</td><td>Operações</td></tr>
+        <tr><td><span class="tag o">🟠 Curto</span></td><td>Campanha de reativação — cancelados nos últimos 6 meses</td><td>10% de reativação (~R$592K)</td><td>45 dias</td><td>Cobrança + CRM</td></tr>
+        <tr><td><span class="tag b">🔵 Médio</span></td><td>Implementar score de risco por vendedor e regional</td><td>Reduzir cancel. 15%</td><td>60 dias</td><td>Analytics + Comercial</td></tr>
+        <tr><td><span class="tag b">🔵 Médio</span></td><td>Revisão do processo de vendas no Centro Sul (34,8% cancel)</td><td>Equalizar com média nacional</td><td>60 dias</td><td>Operações Regionais</td></tr>
+        <tr><td><span class="tag p">🟣 Estrutural</span></td><td>Criar KPI mensal de Carteira Saudável (Ativos / Vendas Acumuladas)</td><td>Meta: acima de 50%</td><td>90 dias</td><td>Financeiro (André)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+
+function tab(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+
+const D = {
+  pl: ["01/2025","02/2025","03/2025","04/2025","05/2025","06/2025","07/2025","08/2025","09/2025","10/2025","11/2025","12/2025","01/2026","02/2026","03/2026","04/2026","05/2026","06/2026"],
+  v_m: [6428,7955,7601,12524,10279,13171,14007,13644,15493,14946,9401,6363,10267,9527,11712,13737,11679,4227],
+  c_m: [113,507,1127,1263,1407,1889,2024,3070,5079,4654,6566,3476,2492,1812,2451,2787,2925,2309],
+  i_m: [1064,1434,1665,3524,6253,8489,9048,8746,10203,10366,6461,4131,6844,5974,5685,1878,326,0],
+  tx_c_m:[1.8, 6.4, 14.8, 10.1, 13.7, 14.3, 14.4, 22.5, 32.8, 31.1, 69.8, 54.6, 24.3, 19.0, 20.9, 20.3, 25.0, 54.6],
+  tx_i_m:[16.6, 18.0, 21.9, 28.1, 60.8, 64.5, 64.6, 64.1, 65.9, 69.4, 68.7, 64.9, 66.7, 62.7, 48.5, 13.7, 2.8, 0],
+  ativos_m:[6315, 13763, 20237, 31498, 40370, 51652, 63635, 74209, 84623, 94915, 97750, 100637, 108412, 116127, 125388, 136338, 145092, 147010],
+  regs:["SÃO PAULO MINAS","INTERIOR","EQUATORIAL","COSTA LESTE","CENTRO SUL"],
+  rv:[47447, 42213, 33739, 33425, 31222],rc:[11406, 9127, 7580, 7748, 8334],ri:[22545, 20874, 17505, 15052, 14202],
+  reg_tx_c:[30.4,27.8,28.2,31.2,34.8],reg_tx_i:[60.2,63.7,65.2,60.7,59.3],
+  fq_lbl:["FERNANDOPOLIS","SP MBOI MIRIM","RIBEIRAO DAS NEVES","SUZANO","GOIANIA NOROESTE","FERRAZ DE VASCONCELOS","TAGUATINGA","NOSSA SENHORA DO SOCORRO","CAXIAS DO SUL","GAMA","MONTES CLAROS","CRUZEIRO","SETE LAGOAS","SP GUAIANASES","SOBRADINHO","PATO BRANCO","GAMA DF","RECIFE CENTRO","CRICIUMA","SAO LUIS"],
+  fq_v:[2543,2380,2263,2182,1748,1679,1547,1530,1505,1502,1236,1123,1393,878,887,868,863,1004,808,751],
+  fq_c:[626,1085,686,917,265,189,245,318,227,309,266,207,273,193,187,200,159,161,198,168],
+  fq_i:[2035,705,1510,683,1518,1478,1025,1340,1359,1363,1236,1123,1393,878,887,868,0,1004,808,751],
+  fq_tx_c:[24.6,45.6,30.3,42.0,15.2,11.3,15.8,20.8,15.1,20.6,21.5,18.4,19.6,22.0,21.1,23.0,18.4,16.0,24.5,22.4],
+  fq_tx_i:[80.0,29.6,66.7,31.3,86.8,88.0,66.3,87.6,90.3,90.7,100.0,100.0,100.0,100.0,100.0,100.0,0,100.0,100.0,100.0],
+  ltv_lbl:["1-30","31-60","61-90","91-120","121-150","151-180","181-210","211-240","241+"],
+  ltv_cnt:[7472,10232,4772,2693,1560,1181,1141,12426,4474],
+  vc_lbl:["TONOGAS","SONHOS","SEMANAC","FEV25","EMBARQUE","TURBO3","DIAREJUNHO","RE03"],
+  vc_val:[16746,3446,2965,2900,2301,2011,1092,1030],
+  vv_lbl:["TONOGAS","SONHOS","MAE25","START2026","AGOSTO25","SEMANAC","OUTUBRO25","FEV25"],
+  vv_val:[40000,22000,8000,7500,6000,5500,5000,4800],
+};
+
+const C={navy:'#0D3B5E',orange:'#F47A20',teal:'#2EC4B6',red:'#E53E3E',green:'#38A169',yellow:'#D97706',purple:'#805AD5',muted:'#718096'};
+const fmt=n=>typeof n==='number'?n.toLocaleString('pt-BR'):n;
+
+function tab(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Visão Geral ────────────────────────────────────────────────────
+new Chart(document.getElementById('c-overview'),{type:'bar',data:{
+  labels:D.pl,
+  datasets:[
+    {label:'Vendas',data:D.v_m,backgroundColor:C.navy+'99',borderColor:C.navy,borderWidth:1,borderRadius:3,stack:'a'},
+    {label:'Cancelados',data:D.c_m,backgroundColor:C.orange+'cc',borderColor:C.orange,borderWidth:1,borderRadius:3,stack:'b'},
+    {label:'Inadimplentes',data:D.i_m,backgroundColor:C.red+'99',borderColor:C.red,borderWidth:1,borderRadius:3,stack:'c'},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-taxas'),{type:'line',data:{
+  labels:D.pl,
+  datasets:[
+    {label:'% Cancel.',data:D.tx_c_m,borderColor:C.orange,backgroundColor:C.orange+'15',fill:false,tension:.3,borderWidth:2,pointRadius:3},
+    {label:'% Inadimp.',data:D.tx_i_m.map(v=>Math.min(v,150)),borderColor:C.red,backgroundColor:C.red+'10',fill:false,tension:.3,borderWidth:2,pointRadius:3,borderDash:[4,4]},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-reg-cancel-pie'),{type:'doughnut',data:{
+  labels:D.regs.map((r,i)=>`${r} (${D.reg_tx_c[i]}%)`),
+  datasets:[{data:D.rc,backgroundColor:[C.navy,C.orange,C.teal,C.green,C.red],borderWidth:2,borderColor:'#fff'}]},
+  options:{plugins:{legend:{position:'bottom',labels:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-plano-compare'),{type:'bar',data:{
+  labels:['Tô no Gás','Individual CDT','Família CDT'],
+  datasets:[
+    {label:'Vendas',data:[140458,8976,554],backgroundColor:C.navy+'88',borderRadius:4,stack:'a'},
+    {label:'Cancel.',data:[39325,6542,30],backgroundColor:C.orange+'cc',borderRadius:4,stack:'b'},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true,indexAxis:'y'}
+});
+
+new Chart(document.getElementById('c-origem-compare'),{type:'bar',data:{
+  labels:['Link Vendedor','Site','AppMaisTODOS'],
+  datasets:[
+    {label:'Vendas',data:[145895,2848,1180],backgroundColor:C.navy+'88',borderRadius:4},
+    {label:'Cancel.',data:[44209,1270,462],backgroundColor:C.red+'99',borderRadius:4},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true,indexAxis:'y'}
+});
+
+// ── Evolução ───────────────────────────────────────────────────────
+new Chart(document.getElementById('c-mensal-vol'),{type:'bar',data:{
+  labels:D.pl,
+  datasets:[
+    {label:'Vendas',data:D.v_m,backgroundColor:C.green+'aa',borderColor:C.green,borderWidth:1.5,borderRadius:3,order:2},
+    {label:'Cancelados',data:D.c_m,backgroundColor:C.orange+'cc',borderColor:C.orange,borderWidth:1.5,borderRadius:3,order:1},
+    {label:'Inadimplentes',data:D.i_m,type:'line',borderColor:C.red,backgroundColor:'transparent',borderWidth:2.5,pointRadius:4,tension:.3,order:0},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:false}
+});
+
+new Chart(document.getElementById('c-tx-cancel'),{type:'bar',data:{
+  labels:D.pl,
+  datasets:[{label:'% Cancel./Vendas',data:D.tx_c_m,
+    backgroundColor:D.tx_c_m.map(v=>v>100?C.purple+'cc':v>50?C.red+'cc':v>20?C.orange+'cc':C.yellow+'cc'),
+    borderColor:D.tx_c_m.map(v=>v>100?C.purple:v>50?C.red:v>20?C.orange:C.yellow),
+    borderWidth:1.5,borderRadius:4}]},
+  options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+'%'}}},scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-tx-inadimp'),{type:'line',data:{
+  labels:D.pl,
+  datasets:[{label:'% Inadimp./Vendas',data:D.tx_i_m.map(v=>Math.min(v,120)),borderColor:C.red,backgroundColor:C.red+'15',fill:true,tension:.3,borderWidth:2.5,pointRadius:4}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-ativos'),{type:'line',data:{
+  labels:D.pl,
+  datasets:[{label:'Ativos Acumulados',data:D.ativos_m,borderColor:C.green,backgroundColor:C.green+'20',fill:true,tension:.35,borderWidth:2.5,pointRadius:3}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:false}
+});
+
+// Tabela mensal
+const tmb=document.getElementById('tab-mensal-body');
+D.pl.forEach((m,i)=>{
+  const tc=D.tx_c_m[i],ti=D.tx_i_m[i];
+  const tagC=tc>100?'<span class="tag r">Crítico</span>':tc>50?'<span class="tag o">Alerta</span>':tc>20?'<span class="tag o">Atenção</span>':'<span class="tag g">Normal</span>';
+  tmb.innerHTML+=`<tr>
+    <td><b>${m}</b></td>
+    <td class="r">${fmt(D.v_m[i])}</td>
+    <td class="r">${fmt(D.c_m[i])}</td>
+    <td class="r" style="color:${tc>50?'var(--red)':tc>20?'var(--yellow)':'inherit'}">${tc}%</td>
+    <td class="r">${fmt(D.i_m[i])}</td>
+    <td class="r" style="color:${ti>80?'var(--red)':ti>50?'var(--orange)':'inherit'}">${ti<=120?ti+'%':'>&gt;120%'}</td>
+    <td class="r">${fmt(D.ativos_m[i])}</td>
+    <td class="c">${tagC}</td>
+  </tr>`;
+});
+
+// ── Regional ───────────────────────────────────────────────────────
+new Chart(document.getElementById('c-reg-bar'),{type:'bar',data:{
+  labels:D.regs,
+  datasets:[
+    {label:'Vendas',data:D.rv,backgroundColor:C.navy+'88',borderRadius:4,borderColor:C.navy,borderWidth:1},
+    {label:'Cancelados',data:D.rc,backgroundColor:C.orange+'cc',borderRadius:4,borderColor:C.orange,borderWidth:1},
+    {label:'Inadimplentes',data:D.ri,backgroundColor:C.red+'88',borderRadius:4,borderColor:C.red,borderWidth:1},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:false}
+});
+
+const treg=document.getElementById('tab-regional-body');
+D.regs.forEach((r,i)=>{
+  const rc=D.reg_tx_c[i],ri=D.reg_tx_i[i];
+  const risco=rc>33||ri>65?'<span class="tag r">Alto</span>':rc>28||ri>60?'<span class="tag o">Médio</span>':'<span class="tag g">Baixo</span>';
+  treg.innerHTML+=`<tr>
+    <td><b>${r}</b></td>
+    <td class="r">${fmt(D.rv[i])}</td><td class="r">${fmt(D.rc[i])}</td>
+    <td class="r" style="color:${rc>30?'var(--red)':'inherit'}">${rc}%</td>
+    <td class="r">${fmt(D.ri[i])}</td>
+    <td class="r" style="color:${ri>65?'var(--red)':'var(--orange)'}">${ri}%</td>
+    <td class="c">${risco}</td>
+  </tr>`;
+});
+
+new Chart(document.getElementById('c-franq'),{type:'bar',data:{
+  labels:D.fq_lbl.slice(0,12),
+  datasets:[
+    {label:'Vendas',data:D.fq_v.slice(0,12),backgroundColor:C.navy+'88',borderRadius:3,borderColor:C.navy,borderWidth:1},
+    {label:'Cancelados',data:D.fq_c.slice(0,12),backgroundColor:C.orange+'cc',borderRadius:3,borderColor:C.orange,borderWidth:1},
+    {label:'Inadimplentes',data:D.fq_i.slice(0,12),backgroundColor:C.red+'88',borderRadius:3,borderColor:C.red,borderWidth:1},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:false}
+});
+
+const tfr=document.getElementById('tab-franq-body');
+D.fq_lbl.forEach((f,i)=>{
+  const tc=D.fq_tx_c[i],ti=D.fq_tx_i[i];
+  let perfil='';
+  if(tc>40&&ti>60)perfil='<span class="tag r">Alto Risco</span>';
+  else if(tc>40)perfil='<span class="tag o">Alto Cancel.</span>';
+  else if(ti>80)perfil='<span class="tag r">Alta Inadimp.</span>';
+  else if(tc<15&&ti<40)perfil='<span class="tag g">Saudável</span>';
+  else perfil='<span class="tag b">Moderado</span>';
+  tfr.innerHTML+=`<tr>
+    <td><b>${i+1}</b></td><td>${f}</td>
+    <td class="r">${fmt(D.fq_v[i])}</td><td class="r">${fmt(D.fq_c[i])}</td>
+    <td class="r" style="color:${tc>35?'var(--red)':tc>20?'var(--orange)':'inherit'}">${tc}%</td>
+    <td class="r">${fmt(D.fq_i[i])}</td>
+    <td class="r" style="color:${ti>70?'var(--red)':'var(--orange)'}">${ti}%</td>
+    <td class="c">${perfil}</td>
+  </tr>`;
+});
+
+// ── Cancelamentos ─────────────────────────────────────────────────
+new Chart(document.getElementById('c-tipo-cancel'),{type:'doughnut',data:{
+  labels:['Manual (70,8%)','Automático por Inadimp. (29,2%)'],
+  datasets:[{data:[32536,13415],backgroundColor:[C.navy,C.red],borderWidth:3,borderColor:'#fff'}]},
+  options:{plugins:{legend:{position:'bottom',labels:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-ltv-dist'),{type:'bar',data:{
+  labels:["1-30","31-60","61-90","91-120","121-150","151-180","181-210","211-240","241+"],
+  datasets:[{data:[7472,10232,4772,2693,1560,1181,1141,12426,4474],
+    backgroundColor:["1-30","31-60","61-90","91-120","121-150","151-180","181-210","211-240","241+"].map((_,i)=>
+      i===7?C.purple+'cc':i<3?C.red+'99':C.orange+'99'),
+    borderRadius:4,borderWidth:0}]},
+  options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.raw)} cancels`}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-cancel-evolucao'),{type:'bar',data:{
+  labels:D.pl,
+  datasets:[{label:'Cancelamentos',data:D.c_m,
+    backgroundColor:D.c_m.map((v,i)=>D.tx_c_m[i]>100?C.purple+'cc':D.tx_c_m[i]>50?C.red+'cc':C.orange+'99'),
+    borderColor:D.c_m.map((v,i)=>D.tx_c_m[i]>100?C.purple:D.tx_c_m[i]>50?C.red:C.orange),
+    borderWidth:1.5,borderRadius:4}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:false}
+});
+
+// Vouchers cancel
+const vcb=document.getElementById('voucher-cancel-bars');
+const maxV=D.vc_val[0];
+D.vc_lbl.forEach((v,i)=>{
+  const pct=(D.vc_val[i]/maxV*100).toFixed(0);
+  const cor=i===0?C.red:i===1?C.orange:C.navy;
+  vcb.innerHTML+=`<div class="pr">
+    <div class="pr-lbl">${v}</div>
+    <div class="pr-wrap"><div class="pr-bar" style="width:${pct}%;background:${cor}"></div></div>
+    <div class="pr-pct">${((D.vc_val[i]/45951)*100).toFixed(1)}%</div>
+    <div class="pr-n">${fmt(D.vc_val[i])}</div>
+  </div>`;
+});
+
+new Chart(document.getElementById('c-cancel-tipo-m'),{type:'bar',data:{
+  labels:D.pl,
+  datasets:[
+    {label:'Manual',data:[98,430,962,1079,1179,1594,1706,2602,4308,3873,5528,2920,2118,1508,2038,2296,2434,1921],backgroundColor:C.navy+'88',borderRadius:3,stack:'a'},
+    {label:'Automático',data:[15,77,165,184,228,295,318,468,771,781,1038,556,374,304,413,491,491,388],backgroundColor:C.red+'99',borderRadius:3,stack:'a'},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{stacked:true,ticks:{callback:v=>fmt(v)}},x:{stacked:true,ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+// ── Perfil ────────────────────────────────────────────────────────
+new Chart(document.getElementById('c-login-compare'),{type:'bar',data:{
+  labels:['Vendas','Cancelados','Inadimplentes'],
+  datasets:[
+    {label:'Nunca Logaram (%)',data:[81.7,69.4,89.0],backgroundColor:[C.navy+'99',C.orange+'cc',C.red+'cc'],borderRadius:6,borderWidth:0},
+    {label:'Logaram (%)',data:[18.3,30.6,11.0],backgroundColor:[C.green+'66',C.green+'66',C.green+'66'],borderRadius:6,borderWidth:0},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{stacked:true,max:100,ticks:{callback:v=>v+'%'}},x:{stacked:true}},responsive:true,maintainAspectRatio:false,indexAxis:'y'}
+});
+
+new Chart(document.getElementById('c-voucher-compare'),{type:'bar',data:{
+  labels:['TONOGAS','SONHOS','Outros top'],
+  datasets:[
+    {label:'Vendas',data:[40000,22000,14000],backgroundColor:C.navy+'88',borderRadius:4},
+    {label:'Cancelados',data:[16746,3446,4000],backgroundColor:C.red+'99',borderRadius:4},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-dsop'),{type:'bar',data:{
+  labels:['Vendas','Cancelados'],
+  datasets:[
+    {label:'Com DSOP',data:[72.1,13.6],backgroundColor:C.green+'aa',borderRadius:4,stack:'a'},
+    {label:'Sem DSOP',data:[32.1,86.4],backgroundColor:C.red+'88',borderRadius:4,stack:'a'},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{stacked:true,max:100,ticks:{callback:v=>v+'%'}},x:{stacked:true}},responsive:true,maintainAspectRatio:true}
+});
+
+
+// ═══ COHORT & SAFRAS ═══
+
+// ═══════════ DADOS ═══════════
+const SAFRAS = ['2025-01','2025-02','2025-03','2025-04','2025-05','2025-06',
+                '2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01'];
+const SLBL   = ['Jan/25','Fev/25','Mar/25','Abr/25','Mai/25','Jun/25',
+                 'Jul/25','Ago/25','Set/25','Out/25','Nov/25','Dez/25','Jan/26'];
+const MESES_VIDA = ['M0','M1','M2','M3','M4','M5','M6','M7','M8','M9','M10','M11','M12','M13','M14','M15','M16','M17'];
+
+// Survival[safra] = [100, m1, m2, ..., m17]
+const SURV = {"2025-01": [100.0, 90.6, 85.6, 82.2, 80.5, 79.1, 78.0, 76.8, 43.1, 39.1, 35.6, 32.5, 31.8, 31.2, 30.9, 30.5, 30.1, 29.6], "2025-02": [100.0, 91.9, 86.1, 83.5, 81.4, 80.2, 79.1, 78.1, 45.9, 39.4, 35.5, 35.0, 34.3, 33.8, 33.4, 33.1, 32.6, 32.6], "2025-03": [100.0, 92.2, 88.5, 85.3, 83.7, 82.6, 81.5, 80.9, 46.8, 40.8, 40.2, 39.3, 38.7, 38.2, 37.8, 37.3, 37.2, 37.2], "2025-04": [100.0, 93.6, 90.2, 88.0, 86.7, 85.6, 84.9, 84.4, 48.6, 47.8, 47.1, 46.6, 46.0, 45.2, 44.7, 44.6, 44.6, 44.6], "2025-05": [100.0, 92.5, 88.6, 86.1, 84.7, 84.0, 83.4, 82.1, 81.2, 80.4, 80.0, 79.4, 79.0, 78.6, 78.5, 78.5, 78.5, 78.5], "2025-06": [100.0, 91.5, 87.6, 85.6, 84.9, 84.3, 83.1, 82.3, 81.7, 81.3, 80.8, 80.4, 79.9, 79.9, 79.9, 79.9, 79.9, 79.9], "2025-07": [100.0, 91.9, 87.6, 86.1, 85.5, 84.3, 83.5, 82.8, 82.3, 81.8, 81.5, 80.9, 80.9, 80.9, 80.9, 80.9, 80.9, 80.9], "2025-08": [100.0, 91.4, 88.9, 88.0, 86.7, 85.7, 84.8, 84.1, 83.5, 83.0, 82.3, 82.3, 82.3, 82.3, 82.3, 82.3, 82.3, 82.3], "2025-09": [100.0, 93.5, 92.7, 91.7, 90.4, 89.4, 88.7, 88.3, 87.8, 87.1, 87.0, 87.0, 87.0, 87.0, 87.0, 87.0, 87.0, 87.0], "2025-10": [100.0, 97.0, 96.0, 94.1, 92.7, 91.9, 91.2, 90.7, 89.9, 89.8, 89.8, 89.8, 89.8, 89.8, 89.8, 89.8, 89.8, 89.8], "2025-11": [100.0, 96.9, 89.9, 87.7, 86.4, 85.4, 84.6, 83.2, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1], "2025-12": [100.0, 95.8, 86.7, 84.4, 83.2, 82.4, 80.7, 80.5, 80.5, 80.5, 80.5, 80.5, 80.5, 80.5, 80.5, 80.5, 80.5, 80.5], "2026-01": [100.0, 96.0, 88.1, 86.0, 84.6, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1, 83.1]};
+const COHORT_ACUM = {"2025-01": [9.4, 14.4, 17.8, 19.5, 20.9, 22.0, 23.2, 56.9, 60.9, 64.4, 67.5, 68.2, 68.8, 69.1, 69.5, 69.9, 70.4], "2025-02": [8.1, 13.9, 16.5, 18.6, 19.8, 20.9, 21.9, 54.1, 60.6, 64.5, 65.0, 65.7, 66.2, 66.6, 66.9, 67.4, 67.4], "2025-03": [7.8, 11.5, 14.7, 16.3, 17.4, 18.5, 19.1, 53.2, 59.2, 59.8, 60.7, 61.3, 61.8, 62.2, 62.7, 62.8, 62.8], "2025-04": [6.4, 9.8, 12.0, 13.3, 14.4, 15.1, 15.6, 51.4, 52.2, 52.9, 53.4, 54.0, 54.8, 55.3, 55.4, 55.4, 55.4], "2025-05": [7.5, 11.4, 13.9, 15.3, 16.0, 16.6, 17.9, 18.8, 19.6, 20.0, 20.6, 21.0, 21.4, 21.5, 21.5, 21.5, 21.5], "2025-06": [8.5, 12.4, 14.4, 15.1, 15.7, 16.9, 17.7, 18.3, 18.7, 19.2, 19.6, 20.1, 20.1, 20.1, 20.1, 20.1, 20.1], "2025-07": [8.1, 12.4, 13.9, 14.5, 15.7, 16.5, 17.2, 17.7, 18.2, 18.5, 19.1, 19.1, 19.1, 19.1, 19.1, 19.1, 19.1], "2025-08": [8.6, 11.1, 12.0, 13.3, 14.3, 15.2, 15.9, 16.5, 17.0, 17.7, 17.7, 17.7, 17.7, 17.7, 17.7, 17.7, 17.7], "2025-09": [6.5, 7.3, 8.3, 9.6, 10.6, 11.3, 11.7, 12.2, 12.9, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0], "2025-10": [3.0, 4.0, 5.9, 7.3, 8.1, 8.8, 9.3, 10.1, 10.2, 10.2, 10.2, 10.2, 10.2, 10.2, 10.2, 10.2, 10.2], "2025-11": [3.1, 10.1, 12.3, 13.6, 14.6, 15.4, 16.8, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9], "2025-12": [4.2, 13.3, 15.6, 16.8, 17.6, 19.3, 19.5, 19.5, 19.5, 19.5, 19.5, 19.5, 19.5, 19.5, 19.5, 19.5, 19.5], "2026-01": [4.0, 11.9, 14.0, 15.4, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9, 16.9]};
+const VOL_V = {"2025-01": 6428, "2025-02": 7955, "2025-03": 7601, "2025-04": 12524, "2025-05": 10279, "2025-06": 13171, "2025-07": 14007, "2025-08": 13644, "2025-09": 15493, "2025-10": 14946, "2025-11": 9401, "2025-12": 6363, "2026-01": 10267};
+const VOL_C = {"2025-01": 4530, "2025-02": 5360, "2025-03": 4770, "2025-04": 6934, "2025-05": 2208, "2025-06": 2650, "2025-07": 2677, "2025-08": 2411, "2025-09": 2019, "2025-10": 1527, "2025-11": 1592, "2025-12": 1240, "2026-01": 1737};
+const TEMPO_MEDIO = {
+  '2025-01':6.3,'2025-02':6.2,'2025-03':6.2,'2025-04':6.3,'2025-05':3.5,'2025-06':3.0,
+  '2025-07':2.7,'2025-08':2.7,'2025-09':2.6,'2025-10':3.0,'2025-11':2.5,'2025-12':2.1,'2026-01':1.8,
+};
+
+const RET_MEDIA = [100.0, 93.4, 89.0, 86.8, 85.5, 84.5, 83.6, 83.1, 69.1, 64.5, 60.4, 56.3, 51.6, 45.4, 36.7, 33.6, 31.4, 29.6];
+const CHURN_M = [6.6, 4.5, 2.1, 1.3, 1.1, 0.9, 0.8, 14.0, 2.2, 1.3, 0.9, 0.6, 0.6, 0.4, 0.4, 0.4, 0.6];
+
+const DUR_LBL = ['0–7d','8–30d','1–2m','2–3m','3–4m','4–6m','6–12m','12m+'];
+const DUR_VAL = [2275,7203,8850,3282,1941,2626,17101,615];
+const DUR_PCT = [5.0,15.7,19.3,7.1,4.2,5.7,37.2,1.3];
+const LTV_DUR = [5.98,30.18,52.49,82.95,111.39,152.30,238.17,421.41];
+
+function round1(n){return Math.round(n*10)/10;}
+
+// Paleta para safras
+const PALETTE = ['#0D3B5E','#1a5285','#2471a3','#2e86c1','#F47A20','#e67e22','#d35400',
+                 '#2EC4B6','#1aab9b','#0e8a7d','#38A169','#2d8653','#805AD5','#6c3fb5'];
+
+
+// ─── Retenção média ────────────────────────────────────────────────
+new Chart(document.getElementById('c-retencao-media'),{type:'line',data:{
+  labels: MESES_VIDA.slice(0,18),
+  datasets:[{
+    label:'Retenção média (%)',
+    data: RET_MEDIA,
+    borderColor:C.teal, backgroundColor:C.teal+'20', fill:true,
+    tension:.3, borderWidth:3, pointRadius:5, pointHoverRadius:7
+  },{
+    label:'50% threshold',
+    data: Array(18).fill(50),
+    borderColor:C.red, borderDash:[6,3], borderWidth:1.5, pointRadius:0, fill:false
+  }]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},
+    scales:{y:{min:20,max:105,ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:9}}}},
+    responsive:true,maintainAspectRatio:true}
+});
+
+// ─── Churn mensal ─────────────────────────────────────────────────
+new Chart(document.getElementById('c-churn-mensal'),{type:'bar',data:{
+  labels: MESES_VIDA.slice(0,17),
+  datasets:[{
+    label:'Churn % no mês',
+    data: CHURN_M,
+    backgroundColor: CHURN_M.map((v,i)=>i===7?C.red+'cc':v>5?C.orange+'cc':C.teal+'88'),
+    borderColor:     CHURN_M.map((v,i)=>i===7?C.red:v>5?C.orange:C.teal),
+    borderWidth:1.5, borderRadius:4
+  }]},
+  options:{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:9}}}},
+    responsive:true,maintainAspectRatio:true}
+});
+
+// ─── Distribuição duração ─────────────────────────────────────────
+new Chart(document.getElementById('c-dist-dur'),{type:'bar',data:{
+  labels:DUR_LBL,
+  datasets:[{
+    data:DUR_VAL,
+    backgroundColor:[C.red+'cc',C.orange+'cc',C.orange+'99',C.yellow+'cc',C.teal+'99',C.teal+'cc',C.navy+'99',C.green+'cc'],
+    borderRadius:4, borderWidth:0
+  }]},
+  options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.raw)} (${DUR_PCT[c.dataIndex]}%)`}}},
+    scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}
+});
+
+// ─── LTV por duração ─────────────────────────────────────────────
+new Chart(document.getElementById('c-ltv-dur'),{type:'bar',data:{
+  labels:DUR_LBL,
+  datasets:[{
+    data:LTV_DUR,
+    backgroundColor:LTV_DUR.map(v=>v<50?C.red+'88':v<150?C.orange+'88':C.green+'88'),
+    borderRadius:4, borderWidth:0
+  }]},
+  options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`R$ ${c.raw.toFixed(2)}`}}},
+    scales:{y:{ticks:{callback:v=>'R$'+v}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}
+});
+
+// ─── Tempo médio por safra ────────────────────────────────────────
+new Chart(document.getElementById('c-tempo-safra'),{type:'bar',data:{
+  labels:SLBL,
+  datasets:[{
+    label:'Meses médios',
+    data:SAFRAS.map(s=>TEMPO_MEDIO[s]),
+    backgroundColor:SAFRAS.map(s=>TEMPO_MEDIO[s]>=5?C.green+'cc':TEMPO_MEDIO[s]>=3?C.teal+'cc':C.orange+'cc'),
+    borderRadius:4, borderWidth:0
+  }]},
+  options:{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>v+'m'}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+// ─── Survival todas as safras ─────────────────────────────────────
+const leg = document.getElementById('survival-legend');
+const survDatasets = SAFRAS.map((s,i)=>({
+  label:SLBL[i],
+  data:SURV[s],
+  borderColor:PALETTE[i],
+  backgroundColor:'transparent',
+  tension:.3, borderWidth:i<4?2.5:1.5, pointRadius:0,
+  borderDash:i>=8?[4,3]:[],
+}));
+survDatasets.forEach((d,i)=>{
+  leg.innerHTML+=`<div class="legend-item"><div class="legend-dot" style="background:${PALETTE[i]}"></div>${SLBL[i]}</div>`;
+});
+new Chart(document.getElementById('c-survival-all'),{type:'line',data:{
+  labels:MESES_VIDA.slice(0,18),
+  datasets: survDatasets
+},
+  options:{plugins:{legend:{display:false}},
+    scales:{y:{min:25,max:105,ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:9}}}},
+    responsive:true,maintainAspectRatio:false}
+});
+
+// Tabela survival
+// Meses observáveis por safra (data-base: Jun/2026)
+const MESES_OBS = {
+  '2025-01':17,'2025-02':16,'2025-03':15,'2025-04':14,'2025-05':13,'2025-06':12,
+  '2025-07':11,'2025-08':10,'2025-09':9,'2025-10':8,'2025-11':7,'2025-12':6,'2026-01':5
+};
+
+const tsb = document.getElementById('tab-survival-body');
+SAFRAS.forEach((s,i)=>{
+  const sv = SURV[s];
+  const m1=sv[1], m3=sv[3], m6=sv[6], m12=sv[12];
+  const obs = MESES_OBS[s];
+  const m12completo = obs >= 12;
+
+  // Perfil: apenas para safras com M12 completo
+  let perfil;
+  if (!m12completo) {
+    perfil = `<span class="tag o" title="Apenas ${obs} meses observados — cliff M7 ainda não ocorreu">⏳ Parcial (${obs}m)</span>`;
+  } else if (m12 < 40) {
+    perfil = '<span class="tag r">Alto churn</span>';
+  } else if (m12 < 60) {
+    perfil = '<span class="tag o">Moderado</span>';
+  } else if (m12 < 80) {
+    perfil = '<span class="tag b">Bom</span>';
+  } else {
+    perfil = '<span class="tag g">Excelente</span>';
+  }
+
+  // M12: estilizar diferente se parcial
+  const m12style = m12completo
+    ? `color:${m12<40?'var(--red)':m12<60?'var(--orange)':m12<80?'var(--teal)':'var(--green)'}`
+    : 'color:var(--muted);font-style:italic';
+  const m12label = m12completo ? `${m12}%` : `${m12}%*`;
+
+  const clr = m => `color:${m<70?'var(--red)':m<85?'var(--orange)':'var(--green)'}`;
+  tsb.innerHTML+=`<tr>
+    <td><b>${SLBL[i]}</b></td>
+    <td class="c">${fmt(VOL_V[s])}</td>
+    <td class="c" style="${clr(m1)}">${m1}%</td>
+    <td class="c" style="${clr(m3)}">${m3}%</td>
+    <td class="c" style="${clr(m6)}">${m6}%</td>
+    <td class="c" style="${m12style}">${m12label}</td>
+    <td class="c">${perfil}</td>
+  </tr>`;
+});
+
+// M1 vs M12 — apenas safras com M12 completo (Jan-Jun/25)
+const SAFRAS_M12_OK = ['2025-01','2025-02','2025-03','2025-04','2025-05','2025-06'];
+const SLBL_M12_OK   = ['Jan/25','Fev/25','Mar/25','Abr/25','Mai/25','Jun/25'];
+new Chart(document.getElementById('c-m1-vs-m12'),{type:'bar',data:{
+  labels:SLBL_M12_OK,
+  datasets:[
+    {label:'Retenção M1',data:SAFRAS_M12_OK.map(s=>SURV[s][1]),backgroundColor:C.teal+'88',borderRadius:3,stack:'a'},
+    {label:'Perda M1→M12 (cliff)',data:SAFRAS_M12_OK.map(s=>SURV[s][1]-SURV[s][12]),backgroundColor:C.red+'88',borderRadius:3,stack:'a'},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},
+    scales:{y:{stacked:true,max:100,ticks:{callback:v=>v+'%'}},x:{stacked:true,ticks:{font:{size:8}}}},
+    responsive:true,maintainAspectRatio:true}
+});
+
+// ─── COHORT HEATMAP ───────────────────────────────────────────────
+function heatColor(val) {
+  if(val===null) return '#f0f4f8';
+  if(val<=5)   return '#c6efce'; // verde claro
+  if(val<=10)  return '#ffeb9c'; // amarelo
+  if(val<=20)  return '#ffc7ce'; // vermelho claro
+  if(val<=40)  return '#ff8080';
+  return '#e53e3e';
+}
+function heatText(val) {
+  if(val===null) return '#aaa';
+  if(val<=5)  return '#276221';
+  if(val<=10) return '#7d6608';
+  if(val<=20) return '#9c0006';
+  return '#fff';
+}
+
+const DATA_REF = new Date('2026-06-11');
+const cht = document.getElementById('cohort-heatmap');
+
+// Header
+let thead='<thead><tr><th style="text-align:left;padding-left:8px">Safra</th><th>Vendas</th>';
+for(let m=0;m<17;m++) thead+=`<th>M${m}</th>`;
+thead+='</tr></thead>';
+cht.innerHTML = thead;
+
+let tbody='<tbody>';
+SAFRAS.forEach((s,si)=>{
+  const safra_dt = new Date(s+'-01');
+  const meses_dec = (DATA_REF.getFullYear()-safra_dt.getFullYear())*12+(DATA_REF.getMonth()-safra_dt.getMonth());
+  tbody+=`<tr><td class="lbl">${SLBL[si]}</td><td class="vol">${fmt(VOL_V[s])}</td>`;
+  for(let m=0;m<17;m++){
+    if(m>meses_dec){
+      tbody+=`<td style="background:#f0f4f8;color:#ccc;font-size:.67rem">n/obs</td>`;
+    } else {
+      const val = COHORT_ACUM[s][m];
+      tbody+=`<td style="background:${heatColor(val)};color:${heatText(val)}">${val}%</td>`;
+    }
+  }
+  tbody+='</tr>';
+});
+tbody+='</tbody>';
+cht.innerHTML += tbody;
+
+// Acum M3 por safra
+new Chart(document.getElementById('c-acum-m3'),{type:'bar',data:{
+  labels:SLBL,
+  datasets:[{
+    label:'% cancel acumulado em M3',
+    data:SAFRAS.map(s=>COHORT_ACUM[s][2]),
+    backgroundColor:SAFRAS.map(s=>COHORT_ACUM[s][2]>15?C.red+'cc':COHORT_ACUM[s][2]>12?C.orange+'cc':C.teal+'88'),
+    borderRadius:4, borderWidth:0
+  }]},
+  options:{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+// Cancel total por safra
+new Chart(document.getElementById('c-cancel-safra'),{type:'bar',data:{
+  labels:SLBL,
+  datasets:[{
+    label:'% cancelados sobre vendas',
+    data:SAFRAS.map(s=>Math.min(round1(VOL_C[s]/VOL_V[s]*100),100)),
+    backgroundColor:SAFRAS.map(s=>{const r=VOL_C[s]/VOL_V[s]*100;return r>50?C.red+'cc':r>30?C.orange+'cc':C.teal+'88';}),
+    borderRadius:4, borderWidth:0
+  }]},
+  options:{plugins:{legend:{display:false}},
+    scales:{y:{max:100,ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+// ─── SAFRA ───────────────────────────────────────────────────────
+const tsaf = document.getElementById('tab-safra-body');
+const ALL_SAFRAS = ['2025-01','2025-02','2025-03','2025-04','2025-05','2025-06',
+                    '2025-07','2025-08','2025-09','2025-10','2025-11','2025-12','2026-01'];
+const ALL_LBL    = SLBL;
+const ALL_VOL_C_EST = {'2025-01':4546,'2025-02':5360,'2025-03':4770,'2025-04':6934,
+                        '2025-05':2208,'2025-06':2650,'2025-07':2677,'2025-08':2411,
+                        '2025-09':2019,'2025-10':1527,'2025-11':1592,'2025-12':1240,'2026-01':1737};
+const LTV_SAFRA = {'2025-01':230,'2025-02':220,'2025-03':215,'2025-04':210,'2025-05':125,
+                   '2025-06':110,'2025-07':100,'2025-08':95,'2025-09':90,'2025-10':100,
+                   '2025-11':80,'2025-12':65,'2026-01':55};
+
+ALL_SAFRAS.forEach((s,i)=>{
+  const v=VOL_V[s],c=ALL_VOL_C_EST[s];
+  const sv=SURV[s];
+  const m1=sv[1],m3=sv[3],m6=sv[6];
+  const tx=round1(c/v*100);
+  const tmedio=TEMPO_MEDIO[s];
+  const dados=i<4?'<span class="tag g">Completo</span>':i<9?'<span class="tag b">Parcial</span>':'<span class="tag o">Recente</span>';
+  const clr=m=>m>=85?'var(--green)':m>=75?'var(--teal)':m>=65?'var(--orange)':'var(--red)';
+  tsaf.innerHTML+=`<tr>
+    <td><b>${ALL_LBL[i]}</b></td>
+    <td class="r">${fmt(v)}</td><td class="r">${fmt(c)}</td>
+    <td class="r" style="color:${tx>50?'var(--red)':tx>30?'var(--orange)':'inherit'}">${tx}%</td>
+    <td class="r">${tmedio}m</td>
+    <td class="r">R$ ${LTV_SAFRA[s]}</td>
+    <td class="c" style="color:${clr(m1)}">${m1}%</td>
+    <td class="c" style="color:${clr(m3)}">${m3}%</td>
+    <td class="c" style="color:${clr(m6)}">${m6}%</td>
+    <td class="c">${dados}</td>
+  </tr>`;
+});
+
+new Chart(document.getElementById('c-safra-vc'),{type:'bar',data:{
+  labels:ALL_LBL,
+  datasets:[
+    {label:'Vendas',data:ALL_SAFRAS.map(s=>VOL_V[s]),backgroundColor:C.navy+'88',borderRadius:3,borderColor:C.navy,borderWidth:1},
+    {label:'Cancelados',data:ALL_SAFRAS.map(s=>ALL_VOL_C_EST[s]),backgroundColor:C.red+'99',borderRadius:3,borderColor:C.red,borderWidth:1},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},
+    scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-safra-m3-trend'),{type:'line',data:{
+  labels:ALL_LBL,
+  datasets:[{
+    label:'% cancel acum M3',
+    data:ALL_SAFRAS.map(s=>100-SURV[s][3]),
+    borderColor:C.red, backgroundColor:C.red+'15', fill:true,
+    tension:.3, borderWidth:2.5, pointRadius:4
+  }]},
+  options:{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:8}}}},responsive:true,maintainAspectRatio:true}
+});
+
+// ─── DURAÇÃO ─────────────────────────────────────────────────────
+new Chart(document.getElementById('c-dist-dur2'),{type:'bar',data:{
+  labels:DUR_LBL,
+  datasets:[{
+    data:DUR_VAL,
+    backgroundColor:DUR_VAL.map((_,i)=>i===6?C.navy+'cc':i<=1?C.red+'cc':C.orange+'88'),
+    borderRadius:4, borderWidth:0
+  }]},
+  options:{plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>`${fmt(c.raw)} cancelamentos (${DUR_PCT[c.dataIndex]}%)`}}},
+    scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}
+});
+
+new Chart(document.getElementById('c-ltv-dur2'),{type:'line',data:{
+  labels:DUR_LBL,
+  datasets:[{
+    label:'LTV médio (R$)',
+    data:LTV_DUR,
+    borderColor:C.green, backgroundColor:C.green+'20', fill:true,
+    tension:.4, borderWidth:2.5, pointRadius:5
+  }]},
+  options:{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>'R$'+v}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}
+});
+
+// Helpers já declarados no topo do script
+
+// ─── VENDAS & INADIMPLÊNCIA ───────────────────────────────────────
+const VI = {
+  pl:["01/2025","02/2025","03/2025","04/2025","05/2025","06/2025","07/2025","08/2025","09/2025","10/2025","11/2025","12/2025","01/2026","02/2026","03/2026","04/2026","05/2026"],
+  v_m:[6428, 7955, 7601, 12524, 10279, 13171, 14007, 13644, 15493, 14946, 9401, 6363, 10267, 9527, 11712, 13737, 11679],
+  i_m:[1064, 1434, 1665, 3524, 6253, 8489, 9048, 8746, 10203, 10366, 6461, 4131, 6844, 5974, 5685, 1878, 326],
+  tx_i:[16.6,18.0,21.9,28.1,60.8,64.5,64.6,64.1,65.9,69.4,68.7,64.9,76.7,100,100,72.3,14.9],
+  regs:["SÃO PAULO MINAS","INTERIOR","EQUATORIAL","COSTA LESTE","CENTRO SUL"],
+  rv:[47447, 42213, 33739, 33425, 31222],
+  rc:[11406,9127,7580,7748,8334],
+  ri:[22545,20874,17505,15052,14202],
+  ativos_reg:[36041, 33086, 26159, 25677, 22888],
+  tx_iv:[47.5, 49.4, 51.9, 45.0, 45.5],
+  tx_ia:[62.6, 63.1, 66.9, 58.6, 62.0],
+  plan_lbl:['Tô no Gás','Individual CDT','Família CDT'],
+  plan_v:[140454, 51802, 554],
+  plan_c:[39325,6542,30],
+  plan_i:[77139,14874,50],
+  plan_tx_c:[28.0, 12.6, 5.4],
+  plan_tx_i:[54.9, 28.7, 9.0],
+  voucher_data:[{"nome": "TONOGAS", "v": 59125, "c": 16746, "i": 24439, "tx_c": 28.3, "tx_i": 41.3}, {"nome": "SONHOS", "v": 29990, "c": 3446, "i": 20381, "tx_c": 11.5, "tx_i": 68.0}, {"nome": "SAUDENOGAS", "v": 6463, "c": 616, "i": 869, "tx_c": 9.5, "tx_i": 13.4}, {"nome": "DIAREJUNHO", "v": 5676, "c": 1092, "i": 3990, "tx_c": 19.2, "tx_i": 70.3}, {"nome": "SEMANAC", "v": 5436, "c": 2965, "i": 1669, "tx_c": 54.5, "tx_i": 30.7}, {"nome": "AGOSTO25", "v": 4637, "c": 688, "i": 3291, "tx_c": 14.8, "tx_i": 71.0}, {"nome": "FEV25", "v": 3965, "c": 2900, "i": 648, "tx_c": 73.1, "tx_i": 16.3}, {"nome": "EMBARQUE", "v": 3854, "c": 2301, "i": 899, "tx_c": 59.7, "tx_i": 23.3}, {"nome": "SEMANABLACKFRIDAY", "v": 3771, "c": 633, "i": 2731, "tx_c": 16.8, "tx_i": 72.4}, {"nome": "DIAREJULHO", "v": 3431, "c": 648, "i": 2407, "tx_c": 18.9, "tx_i": 70.2}, {"nome": "DIAREFAIXA", "v": 3264, "c": 66, "i": 0, "tx_c": 2.0, "tx_i": 0.0}, {"nome": "TURBO3", "v": 3146, "c": 2011, "i": 673, "tx_c": 63.9, "tx_i": 21.4}]
+};
+
+// Gráfico volume mensal
+new Chart(document.getElementById('c-vi-mensal'),{type:'bar',data:{
+  labels:VI.pl,
+  datasets:[
+    {label:'Vendas',data:VI.v_m,backgroundColor:C.navy+'88',borderColor:C.navy,borderWidth:1,borderRadius:3},
+    {label:'Inadimplentes',data:VI.i_m,backgroundColor:C.red+'88',borderColor:C.red,borderWidth:1,borderRadius:3},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},
+    scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:8}}}},
+    responsive:true,maintainAspectRatio:true}
+});
+
+// Gráfico taxa mensal
+new Chart(document.getElementById('c-vi-taxa'),{type:'line',data:{
+  labels:VI.pl,
+  datasets:[{
+    label:'% Inadimp./Vendas',
+    data:VI.tx_i,
+    borderColor:C.red,backgroundColor:C.red+'15',fill:true,
+    tension:.3,borderWidth:2.5,pointRadius:4,
+    pointBackgroundColor:VI.tx_i.map(v=>v>80?C.red:v>50?C.orange:C.teal)
+  }]},
+  options:{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:8}}}},
+    responsive:true,maintainAspectRatio:true}
+});
+
+// Gráfico regional
+new Chart(document.getElementById('c-vi-regional'),{type:'bar',data:{
+  labels:VI.regs,
+  datasets:[
+    {label:'% Inad/Vendas',data:VI.tx_iv,backgroundColor:C.orange+'88',borderRadius:4,borderColor:C.orange,borderWidth:1},
+    {label:'% Inad/Ativos',data:VI.tx_ia,backgroundColor:C.red+'88',borderRadius:4,borderColor:C.red,borderWidth:1},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},
+    scales:{y:{max:100,ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:8}}}},
+    responsive:true,maintainAspectRatio:true,indexAxis:'y'}
+});
+
+// Gráfico planos
+new Chart(document.getElementById('c-vi-plano'),{type:'bar',data:{
+  labels:VI.plan_lbl,
+  datasets:[
+    {label:'Vendas',data:VI.plan_v,backgroundColor:C.navy+'88',borderRadius:3},
+    {label:'Cancel.',data:VI.plan_c,backgroundColor:C.orange+'88',borderRadius:3},
+    {label:'Inadimp.',data:VI.plan_i,backgroundColor:C.red+'88',borderRadius:3},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},
+    scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},
+    responsive:true,maintainAspectRatio:true,indexAxis:'y'}
+});
+
+// Tabela regional
+const tvir=document.getElementById('tab-vi-regional');
+VI.regs.forEach((r,i)=>{
+  const risco=VI.tx_ia[i]>90?'<span class="tag r">Crítico</span>':VI.tx_ia[i]>85?'<span class="tag o">Alto</span>':'<span class="tag b">Médio</span>';
+  tvir.innerHTML+=`<tr>
+    <td><b>${r}</b></td>
+    <td class="r">${fmt(VI.rv[i])}</td>
+    <td class="r">${fmt(VI.rc[i])}</td>
+    <td class="r">${fmt(VI.ativos_reg[i])}</td>
+    <td class="r">${fmt(VI.ri[i])}</td>
+    <td class="r" style="color:var(--orange)">${VI.tx_iv[i]}%</td>
+    <td class="r" style="color:${VI.tx_ia[i]>88?'var(--red)':'var(--orange)'};font-weight:700">${VI.tx_ia[i]}%</td>
+    <td class="c">${risco}</td>
+  </tr>`;
+});
+
+// Tabela vouchers
+const tviv=document.getElementById('tab-vi-voucher');
+VI.voucher_data.forEach(v=>{
+  const pc=v.tx_c>40?'<span class="tag r">':v.tx_c>20?'<span class="tag o">':'<span class="tag b">';
+  const pi=v.tx_i>60?'<span class="tag r">':v.tx_i>40?'<span class="tag o">':'<span class="tag g">';
+  const perfil=v.tx_c>40&&v.tx_i>40?'<span class="tag r">Risco duplo</span>':
+               v.tx_i>60&&v.tx_c<20?'<span class="tag o">Inad. silencioso</span>':
+               v.tx_c>40&&v.tx_i<30?'<span class="tag b">Alto cancel.</span>':'<span class="tag g">Moderado</span>';
+  tviv.innerHTML+=`<tr>
+    <td><b>${v.nome}</b></td>
+    <td class="r">${fmt(v.v)}</td>
+    <td class="r">${fmt(v.c)}</td>
+    <td class="r">${pc}${v.tx_c}%</span></td>
+    <td class="r">${fmt(v.i)}</td>
+    <td class="r">${pi}${v.tx_i}%</span></td>
+    <td class="c">${perfil}</td>
+  </tr>`;
+});
+
+
+
+
+// ═══ AGING DE INADIMPLÊNCIA ═══
+const AGING = {"lbls": ["31–60d", "61–90d", "91–120d", "121–180d", "181–365d", "366d+"], "qtd": [326, 1878, 5685, 12818, 48955, 22429], "pct": [0.4, 2.0, 6.2, 13.9, 53.2, 24.4], "pct_acum": [0.4, 2.4, 8.6, 22.5, 75.7, 100.1], "pendente": [326, 1878, 5685, 12818, 48266, 22262], "suspenso": [0, 0, 0, 0, 689, 167], "media_dias": [41, 71, 102, 146, 277, 414], "aging_reg": {"31–60d": [58, 88, 92, 61, 22], "61–90d": [336, 341, 386, 483, 309], "91–120d": [1252, 1246, 857, 1107, 1136], "121–180d": [3021, 2767, 2426, 1905, 2443], "181–365d": [12474, 11598, 9720, 7377, 6870], "366d+": [5404, 4834, 4024, 4119, 3422]}, "aging_plano": {"31–60d": [0, 322, 4], "61–90d": [0, 1838, 31], "91–120d": [0, 5670, 5], "121–180d": [5755, 7044, 10], "181–365d": [48955, 0, 0], "366d+": [22429, 0, 0]}, "aging_dsop_sim": [325, 1864, 5649, 12458, 40947, 21878], "aging_dsop_nao": [1, 14, 36, 360, 8008, 551], "aging_cashback": [319, 1806, 5507, 12387, 45364, 20089], "regs": ["SÃO PAULO MINAS", "INTERIOR", "EQUATORIAL", "COSTA LESTE", "CENTRO SUL"], "planos_lbl": ["Tô no Gás", "Individual CDT", "Família CDT"], "total": 92091};
+
+// Gráfico distribuição
+new Chart(document.getElementById('c-aging-dist'),{type:'bar',data:{
+  labels:AGING.lbls,
+  datasets:[{
+    label:'Inadimplentes',
+    data:AGING.qtd,
+    backgroundColor:['#38A169cc','#2EC4B6cc','#D97706cc','#F47A20cc','#E53E3Ecc','#805AD5cc'],
+    borderColor:    ['#38A169','#2EC4B6','#D97706','#F47A20','#E53E3E','#805AD5'],
+    borderWidth:1.5,borderRadius:5
+  }]
+},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmt(c.raw)} (${AGING.pct[c.dataIndex]}%)`}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}});
+
+// Curva de Pareto
+new Chart(document.getElementById('c-aging-pareto'),{type:'bar',data:{
+  labels:AGING.lbls,
+  datasets:[
+    {label:'% do total',data:AGING.pct,backgroundColor:'#0D3B5E55',borderColor:'#0D3B5E',borderWidth:1,borderRadius:4,yAxisID:'y'},
+    {label:'% acumulado',data:AGING.pct_acum,type:'line',borderColor:'#F47A20',backgroundColor:'transparent',borderWidth:2.5,pointRadius:5,tension:.3,yAxisID:'y2'},
+  ]
+},options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{
+  y:{ticks:{callback:v=>v+'%'}},
+  y2:{type:'linear',position:'right',min:0,max:100,ticks:{callback:v=>v+'%'},grid:{drawOnChartArea:false}},
+  x:{ticks:{font:{size:9}}}
+},responsive:true,maintainAspectRatio:true}});
+
+// Status
+new Chart(document.getElementById('c-aging-status'),{type:'bar',data:{
+  labels:AGING.lbls,
+  datasets:[
+    {label:'Pendente',data:AGING.pendente,backgroundColor:'#F47A20cc',borderRadius:4,stack:'a'},
+    {label:'Suspenso',data:AGING.suspenso,backgroundColor:'#E53E3Ecc',borderRadius:4,stack:'a'},
+  ]
+},options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{stacked:true,ticks:{callback:v=>fmt(v)}},x:{stacked:true,ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}});
+
+// DSOP e Cashback
+new Chart(document.getElementById('c-aging-dsop'),{type:'bar',data:{
+  labels:AGING.lbls,
+  datasets:[
+    {label:'DSOP Ativo',data:AGING.aging_dsop_sim,backgroundColor:'#2EC4B6cc',borderRadius:4,borderColor:'#2EC4B6',borderWidth:1},
+    {label:'Com Cashback',data:AGING.aging_cashback,backgroundColor:'#38A16988',borderRadius:4,borderColor:'#38A169',borderWidth:1},
+  ]
+},options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{ticks:{callback:v=>fmt(v)}},x:{ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:true}});
+
+// Regional
+new Chart(document.getElementById('c-aging-reg'),{type:'bar',data:{
+  labels:AGING.regs,
+  datasets:AGING.lbls.map((l,i)=>{
+    const cores=['#38A169','#2EC4B6','#D97706','#F47A20','#E53E3E','#805AD5'];
+    return {label:l,data:AGING.aging_reg[l],backgroundColor:cores[i]+'99',borderColor:cores[i],borderWidth:1,borderRadius:3,stack:'a'};
+  })
+},options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},scales:{y:{stacked:true,ticks:{callback:v=>fmt(v)}},x:{stacked:true,ticks:{font:{size:9}}}},responsive:true,maintainAspectRatio:false,indexAxis:'y'}});
+
+// Tabela aging
+const tabAgingBody=document.getElementById('tab-aging-body');
+const agingPrior=['<span class="tag g">Baixo</span>','<span class="tag g">Baixo</span>','<span class="tag o">Médio</span>','<span class="tag r">Alto</span>','<span class="tag r">Crítico</span>','<span class="tag r">Crítico</span>'];
+AGING.lbls.forEach((l,i)=>{
+  tabAgingBody.innerHTML+=`<tr>
+    <td><b>${l}</b></td>
+    <td class="r" style="color:${i>=4?'var(--red)':i>=3?'var(--orange)':'inherit'}">${fmt(AGING.qtd[i])}</td>
+    <td class="r">${AGING.pct[i]}%</td>
+    <td class="r">${AGING.pct_acum[i]}%</td>
+    <td class="r">${fmt(AGING.pendente[i])}</td>
+    <td class="r" style="color:${AGING.suspenso[i]>0?'var(--red)':'var(--muted)'}">${fmt(AGING.suspenso[i])}</td>
+    <td class="r">${AGING.media_dias[i]}d</td>
+    <td class="r">${fmt(AGING.aging_dsop_sim[i])}</td>
+    <td class="r">${fmt(AGING.aging_cashback[i])}</td>
+    <td class="c">${agingPrior[i]}</td>
+  </tr>`;
+});
+
+// Tabela aging × plano
+const tabAgingPlano=document.getElementById('tab-aging-plano');
+AGING.lbls.forEach((l,i)=>{
+  const p=AGING.aging_plano[l];
+  const tot=p.reduce((a,b)=>a+b,0)||1;
+  tabAgingPlano.innerHTML+=`<tr>
+    <td><b>${l}</b></td>
+    <td class="r">${fmt(p[0])}</td><td class="r">${round1(p[0]/tot*100)}%</td>
+    <td class="r">${fmt(p[1])}</td><td class="r">${round1(p[1]/tot*100)}%</td>
+    <td class="r">${fmt(p[2])}</td><td class="r">${round1(p[2]/tot*100)}%</td>
+  </tr>`;
+});
+
+
+// ─── Eficiência por regional ──────────────────────────────────────
+const EFIC_REG = {
+  regs: ['Costa Leste','Centro Sul','SP Minas','Interior','Equatorial'],
+  efic: [41.4, 38.0, 37.4, 36.9, 33.1],
+  inad: [58.6, 62.0, 62.6, 63.1, 66.9],
+};
+new Chart(document.getElementById('c-efic-regional'),{type:'bar',data:{
+  labels: EFIC_REG.regs,
+  datasets:[
+    {label:'Adimplentes (Eficiência %)',data:EFIC_REG.efic,
+     backgroundColor:EFIC_REG.efic.map(v=>v>=50?C.green+'cc':v>=40?C.teal+'cc':v>=35?C.yellow+'cc':C.orange+'cc'),
+     borderRadius:5,borderWidth:0},
+    {label:'Meta mínima (50%)',type:'line',
+     data:Array(5).fill(50),borderColor:C.red,borderDash:[6,3],
+     borderWidth:2,pointRadius:0,fill:false},
+  ]},
+  options:{plugins:{legend:{position:'top',labels:{font:{size:9}}}},
+    scales:{y:{min:0,max:75,ticks:{callback:v=>v+'%'}},x:{ticks:{font:{size:9}}}},
+    responsive:true,maintainAspectRatio:true}
+});
+
+// ─── Composição da base ativa ─────────────────────────────────────
+new Chart(document.getElementById('c-composicao-ativa'),{type:'doughnut',data:{
+  labels:[
+    'Adimplentes (37,4%)',
+    '31–120d (5,7%)',
+    '121–180d (8,7%)',
+    '181–365d (33,3%)',
+    '366d+ (15,3%)',
+  ],
+  datasets:[{
+    data:[54923, 7889, 12818, 48955, 22429],
+    backgroundColor:[C.green,C.teal,C.yellow,C.orange,C.red],
+    borderWidth:2,borderColor:'#fff'
+  }]},
+  options:{plugins:{legend:{position:'right',labels:{font:{size:9},boxWidth:12}}},
+    responsive:true,maintainAspectRatio:true}
+});
+
+</script>
+</body>
+</html>
